@@ -1,80 +1,131 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart
+description: "Remove your first background in under 2 minutes"
 ---
 
-## Get started in three steps
+## 1. Get Your API Key
 
-Get your documentation site running locally and make your first customization.
+<Steps>
+  <Step title="Create an Account">
+    Go to [dash.poof.bg](https://dash.poof.bg) and sign up with your email or GitHub.
+  </Step>
+  <Step title="Copy Your API Key">
+    Your API key is displayed on the dashboard. It starts with `poof_`.
+  </Step>
+  <Step title="Keep It Secret">
+    Treat your API key like a password. Never commit it to version control or expose it in client-side code.
+  </Step>
+</Steps>
 
-### Step 1: Set up your local environment
+## 2. Make Your First Request
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
+Choose your preferred method:
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST https://api.poof.bg/v1/remove \
+      -H "x-api-key: poof_your_api_key" \
+      -F "image_file=@input.jpg" \
+      -o output.png
+    ```
+  </Tab>
+  <Tab title="Python">
+    Install the SDK:
+    ```bash
+    pip install poof
+    ```
     
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
+    Remove a background:
+    ```python
+    from poof import Poof
     
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
+    client = Poof(api_key="poof_your_api_key")
     
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    # From a file
+    result = client.remove("input.jpg")
+    result.save("output.png")
+    
+    # From bytes
+    with open("input.jpg", "rb") as f:
+        result = client.remove(f.read())
+        result.save("output.png")
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    Install the SDK:
+    ```bash
+    npm install @poof-bg/sdk
+    ```
+    
+    Remove a background:
+    ```typescript
+    import { Poof } from '@poof-bg/sdk';
+    import fs from 'fs/promises';
+    
+    const poof = new Poof({ apiKey: 'poof_your_api_key' });
+    
+    const image = await fs.readFile('input.jpg');
+    const result = await poof.remove(image);
+    await fs.writeFile('output.png', result);
+    ```
+  </Tab>
+</Tabs>
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+## 3. See the Result
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+Your output file now contains the image with the background removed:
 
-### Step 3: Go live
+| Before | After |
+|--------|-------|
+| Original photo with background | Transparent PNG, background removed |
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+<Check>
+**Success!** You've made your first background removal request.
+</Check>
 
-## Next steps
-
-Now that you have your docs running, explore these key features:
+## What's Next?
 
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Customize Output" icon="sliders" href="/api-reference/remove-background">
+    Learn about formats, sizes, and background colors
+  </Card>
+  <Card title="Check Usage" icon="chart-line" href="/api-reference/account">
+    Monitor your credit usage via the API
+  </Card>
+  <Card title="Handle Errors" icon="triangle-exclamation" href="/errors">
+    Implement robust error handling
+  </Card>
+  <Card title="Explore SDKs" icon="puzzle-piece" href="/sdks/overview">
+    Use our official SDKs for easier integration
+  </Card>
 </CardGroup>
 
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>
+## Common Options
+
+Here are some popular parameter combinations:
+
+```bash
+# Get a JPEG with white background
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "x-api-key: YOUR_API_KEY" \
+  -F "image_file=@photo.jpg" \
+  -F "format=jpg" \
+  -F "channels=rgb" \
+  -F "bg_color=#ffffff" \
+  -o result.jpg
+
+# Get a small preview (faster, uses fewer credits)
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "x-api-key: YOUR_API_KEY" \
+  -F "image_file=@photo.jpg" \
+  -F "size=preview" \
+  -o preview.png
+
+# Crop to subject bounds
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "x-api-key: YOUR_API_KEY" \
+  -F "image_file=@photo.jpg" \
+  -F "crop=true" \
+  -o cropped.png
+```

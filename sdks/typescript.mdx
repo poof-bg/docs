@@ -1,0 +1,314 @@
+---
+title: TypeScript SDK
+description: "Official TypeScript/JavaScript client for the Poof API"
+---
+
+The official TypeScript SDK for Poof works in Node.js, Deno, and Bun with full type safety.
+
+## Installation
+
+<Tabs>
+  <Tab title="npm">
+    ```bash
+    npm install @poof-bg/sdk
+    ```
+  </Tab>
+  <Tab title="pnpm">
+    ```bash
+    pnpm add @poof-bg/sdk
+    ```
+  </Tab>
+  <Tab title="yarn">
+    ```bash
+    yarn add @poof-bg/sdk
+    ```
+  </Tab>
+  <Tab title="bun">
+    ```bash
+    bun add @poof-bg/sdk
+    ```
+  </Tab>
+</Tabs>
+
+**Requirements:** Node.js 18+ (or Deno/Bun)
+
+## Quick Start
+
+```typescript
+import { Poof } from '@poof-bg/sdk';
+import fs from 'fs/promises';
+
+const poof = new Poof({ apiKey: 'poof_your_api_key' });
+
+const image = await fs.readFile('photo.jpg');
+const result = await poof.remove(image);
+await fs.writeFile('result.png', result);
+```
+
+## Authentication
+
+The SDK looks for your API key in this order:
+
+1. Passed directly: `new Poof({ apiKey: '...' })`
+2. Environment variable: `POOF_API_KEY`
+
+```typescript
+import { Poof } from '@poof-bg/sdk';
+
+// Option 1: Pass directly
+const poof = new Poof({ apiKey: 'poof_your_api_key' });
+
+// Option 2: Use environment variable (recommended)
+// POOF_API_KEY=poof_your_api_key
+const poof = new Poof();
+```
+
+## Usage Examples
+
+### From Buffer
+
+```typescript
+import { Poof } from '@poof-bg/sdk';
+import fs from 'fs/promises';
+
+const poof = new Poof();
+
+const image = await fs.readFile('photo.jpg');
+const result = await poof.remove(image);
+await fs.writeFile('result.png', result);
+```
+
+### From File Path (Node.js)
+
+```typescript
+import { Poof } from '@poof-bg/sdk';
+import fs from 'fs/promises';
+
+const poof = new Poof();
+const result = await poof.removeFile('photo.jpg');
+await fs.writeFile('result.png', result);
+```
+
+### From URL
+
+```typescript
+const response = await fetch('https://example.com/photo.jpg');
+const image = Buffer.from(await response.arrayBuffer());
+
+const result = await poof.remove(image);
+```
+
+### With Options
+
+```typescript
+// White background JPEG
+const result = await poof.remove(image, {
+  format: 'jpg',
+  channels: 'rgb',
+  bgColor: '#ffffff',
+});
+
+// Small cropped thumbnail
+const result = await poof.remove(image, {
+  size: 'small',
+  crop: true,
+});
+
+// WebP for web
+const result = await poof.remove(image, {
+  format: 'webp',
+  size: 'medium',
+});
+```
+
+## Response Metadata
+
+Access processing metadata from the response:
+
+```typescript
+const response = await poof.removeWithMetadata(image);
+
+console.log(response.data);           // Buffer - the processed image
+console.log(response.requestId);      // string - unique request ID
+console.log(response.processingTimeMs); // number - processing time
+console.log(response.width);          // number - output width
+console.log(response.height);         // number - output height
+```
+
+## Parallel Processing
+
+```typescript
+import { Poof } from '@poof-bg/sdk';
+import fs from 'fs/promises';
+import path from 'path';
+
+const poof = new Poof();
+
+async function processImages(imagePaths: string[]) {
+  const results = await Promise.all(
+    imagePaths.map(async (imagePath) => {
+      const image = await fs.readFile(imagePath);
+      const result = await poof.remove(image);
+      const outputPath = imagePath.replace(/\.[^.]+$/, '_no_bg.png');
+      await fs.writeFile(outputPath, result);
+      return outputPath;
+    })
+  );
+  return results;
+}
+
+await processImages(['photo1.jpg', 'photo2.jpg', 'photo3.jpg']);
+```
+
+## Account Info
+
+Check your credit balance:
+
+```typescript
+const account = await poof.getAccount();
+
+console.log(`Plan: ${account.plan}`);
+console.log(`Credits used: ${account.usedCredits}/${account.maxCredits}`);
+console.log(`Remaining: ${account.maxCredits - account.usedCredits}`);
+```
+
+## Error Handling
+
+```typescript
+import { Poof, PoofError, AuthenticationError, PaymentRequiredError, RateLimitError } from '@poof-bg/sdk';
+
+const poof = new Poof();
+
+try {
+  const result = await poof.remove(image);
+} catch (error) {
+  if (error instanceof AuthenticationError) {
+    console.error('Check your API key');
+  } else if (error instanceof PaymentRequiredError) {
+    console.error('Out of credits — upgrade your plan');
+  } else if (error instanceof RateLimitError) {
+    console.error(`Rate limited. Request ID: ${error.requestId}`);
+  } else if (error instanceof PoofError) {
+    console.error(`API error: ${error.message} (${error.requestId})`);
+  } else {
+    throw error;
+  }
+}
+```
+
+### Retry with Backoff
+
+```typescript
+async function removeWithRetry(
+  poof: Poof,
+  image: Buffer,
+  maxRetries = 3
+): Promise<Buffer> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await poof.remove(image);
+    } catch (error) {
+      if (error instanceof RateLimitError && attempt < maxRetries - 1) {
+        const delay = Math.pow(2, attempt) * 1000;
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
+```
+
+## Configuration
+
+```typescript
+const poof = new Poof({
+  apiKey: 'poof_your_api_key',
+  baseUrl: 'https://api.poof.bg/v1', // Default
+  timeout: 30000, // Request timeout in ms
+});
+```
+
+## TypeScript Types
+
+Full type definitions are included:
+
+```typescript
+import type { 
+  Poof,
+  RemoveOptions,
+  AccountInfo,
+  Format,
+  Size,
+  Channels,
+} from '@poof-bg/sdk';
+
+const options: RemoveOptions = {
+  format: 'png',
+  size: 'full',
+  crop: false,
+};
+```
+
+## Framework Examples
+
+### Express.js
+
+```typescript
+import express from 'express';
+import multer from 'multer';
+import { Poof } from '@poof-bg/sdk';
+
+const app = express();
+const upload = multer();
+const poof = new Poof();
+
+app.post('/remove-background', upload.single('image'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No image provided' });
+  }
+
+  try {
+    const result = await poof.remove(req.file.buffer);
+    res.set('Content-Type', 'image/png');
+    res.send(result);
+  } catch (error) {
+    res.status(500).json({ error: 'Processing failed' });
+  }
+});
+
+app.listen(3000);
+```
+
+### Next.js API Route
+
+```typescript
+// app/api/remove-bg/route.ts
+import { Poof } from '@poof-bg/sdk';
+import { NextRequest, NextResponse } from 'next/server';
+
+const poof = new Poof();
+
+export async function POST(request: NextRequest) {
+  const formData = await request.formData();
+  const file = formData.get('image') as File;
+  
+  if (!file) {
+    return NextResponse.json({ error: 'No image' }, { status: 400 });
+  }
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const result = await poof.remove(buffer);
+  
+  return new NextResponse(result, {
+    headers: { 'Content-Type': 'image/png' },
+  });
+}
+```
+
+## Links
+
+- [npm Package](https://www.npmjs.com/package/@poof-bg/sdk)
+- [GitHub Repository](https://github.com/poof-bg/poof-ts)
+- [API Reference](/api-reference/remove-background)

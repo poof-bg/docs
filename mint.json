@@ -1,0 +1,87 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "Poof",
+  "logo": {
+    "light": "/logo.svg",
+    "dark": "/logo-dark.svg"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#7C3AED",
+    "light": "#A78BFA",
+    "dark": "#5B21B6",
+    "anchors": {
+      "from": "#7C3AED",
+      "to": "#A78BFA"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "Dashboard",
+      "url": "https://dash.poof.bg"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Get API Key",
+    "url": "https://dash.poof.bg"
+  },
+  "anchors": [
+    {
+      "name": "API Reference",
+      "icon": "code",
+      "url": "api-reference"
+    },
+    {
+      "name": "SDKs",
+      "icon": "puzzle-piece",
+      "url": "sdks"
+    },
+    {
+      "name": "GitHub",
+      "icon": "github",
+      "url": "https://github.com/poof-bg"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": ["introduction", "quickstart", "authentication"]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "api-reference/remove-background",
+        "api-reference/account"
+      ]
+    },
+    {
+      "group": "SDKs & Integrations",
+      "pages": [
+        "sdks/overview",
+        "sdks/python",
+        "sdks/typescript",
+        "sdks/n8n",
+        "sdks/mcp"
+      ]
+    },
+    {
+      "group": "Resources",
+      "pages": ["errors"]
+    }
+  ],
+  "footerSocials": {
+    "github": "https://github.com/poof-bg",
+    "website": "https://poof.bg"
+  },
+  "openapi": "/openapi.json",
+  "api": {
+    "baseUrl": "https://api.poof.bg/v1",
+    "auth": {
+      "method": "key",
+      "name": "x-api-key"
+    }
+  },
+  "feedback": {
+    "thumbsRating": true
+  }
+}

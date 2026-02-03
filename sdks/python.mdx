@@ -1,0 +1,251 @@
+---
+title: Python SDK
+description: "Official Python client for the Poof API"
+---
+
+The official Python SDK for Poof provides a clean, Pythonic interface with full type hints and both sync and async support.
+
+## Installation
+
+```bash
+pip install poof
+```
+
+**Requirements:** Python 3.8+
+
+## Quick Start
+
+```python
+from poof import Poof
+
+# Initialize the client
+client = Poof(api_key="poof_your_api_key")
+
+# Remove background from a file
+result = client.remove("photo.jpg")
+result.save("result.png")
+```
+
+## Authentication
+
+The SDK looks for your API key in this order:
+
+1. Passed directly: `Poof(api_key="...")`
+2. Environment variable: `POOF_API_KEY`
+
+```python
+import os
+from poof import Poof
+
+# Option 1: Pass directly (not recommended for production)
+client = Poof(api_key="poof_your_api_key")
+
+# Option 2: Use environment variable (recommended)
+# export POOF_API_KEY=poof_your_api_key
+client = Poof()  # Reads from POOF_API_KEY
+```
+
+## Usage Examples
+
+### From File Path
+
+```python
+result = client.remove("photo.jpg")
+result.save("result.png")
+```
+
+### From Bytes
+
+```python
+with open("photo.jpg", "rb") as f:
+    image_bytes = f.read()
+
+result = client.remove(image_bytes)
+
+# Access the result as bytes
+png_bytes = result.data
+
+# Or save directly
+result.save("result.png")
+```
+
+### From URL
+
+```python
+import requests
+
+image_url = "https://example.com/photo.jpg"
+response = requests.get(image_url)
+
+result = client.remove(response.content)
+result.save("result.png")
+```
+
+### With Options
+
+```python
+# White background JPEG
+result = client.remove(
+    "photo.jpg",
+    format="jpg",
+    channels="rgb",
+    bg_color="#ffffff"
+)
+
+# Small cropped thumbnail
+result = client.remove(
+    "photo.jpg",
+    size="small",
+    crop=True
+)
+
+# WebP for web
+result = client.remove(
+    "photo.jpg",
+    format="webp",
+    size="medium"
+)
+```
+
+## Async Support
+
+For async applications, use `AsyncPoof`:
+
+```python
+import asyncio
+from poof import AsyncPoof
+
+async def main():
+    async with AsyncPoof() as client:
+        result = await client.remove("photo.jpg")
+        result.save("result.png")
+
+asyncio.run(main())
+```
+
+### Parallel Processing
+
+```python
+import asyncio
+from poof import AsyncPoof
+
+async def process_images(image_paths: list[str]):
+    async with AsyncPoof() as client:
+        tasks = [client.remove(path) for path in image_paths]
+        results = await asyncio.gather(*tasks)
+        
+        for path, result in zip(image_paths, results):
+            output_path = path.replace(".jpg", "_no_bg.png")
+            result.save(output_path)
+
+asyncio.run(process_images(["photo1.jpg", "photo2.jpg", "photo3.jpg"]))
+```
+
+## Result Object
+
+The `remove()` method returns a `Result` object:
+
+```python
+result = client.remove("photo.jpg")
+
+# Raw image bytes
+image_bytes: bytes = result.data
+
+# Save to file
+result.save("output.png")
+
+# Metadata from response headers
+print(f"Processing time: {result.processing_time_ms}ms")
+print(f"Dimensions: {result.width}x{result.height}")
+print(f"Request ID: {result.request_id}")
+```
+
+## Account Info
+
+Check your credit balance:
+
+```python
+account = client.get_account()
+
+print(f"Plan: {account.plan}")
+print(f"Credits used: {account.used_credits}/{account.max_credits}")
+print(f"Remaining: {account.max_credits - account.used_credits}")
+```
+
+## Error Handling
+
+```python
+from poof import Poof
+from poof.exceptions import (
+    PoofError,
+    AuthenticationError,
+    PaymentRequiredError,
+    RateLimitError,
+    ValidationError,
+)
+
+client = Poof()
+
+try:
+    result = client.remove("photo.jpg")
+except AuthenticationError:
+    print("Check your API key")
+except PaymentRequiredError:
+    print("Out of credits — upgrade your plan")
+except RateLimitError as e:
+    print(f"Rate limited. Retry after backoff. Request ID: {e.request_id}")
+except ValidationError as e:
+    print(f"Invalid request: {e.message}")
+except PoofError as e:
+    print(f"API error: {e.message} (Request ID: {e.request_id})")
+```
+
+### Retry with Backoff
+
+```python
+import time
+from poof.exceptions import RateLimitError
+
+def remove_with_retry(client, image, max_retries=3):
+    for attempt in range(max_retries):
+        try:
+            return client.remove(image)
+        except RateLimitError:
+            if attempt == max_retries - 1:
+                raise
+            wait = 2 ** attempt
+            time.sleep(wait)
+```
+
+## Configuration
+
+```python
+client = Poof(
+    api_key="poof_your_api_key",
+    base_url="https://api.poof.bg/v1",  # Default
+    timeout=30.0,  # Request timeout in seconds
+)
+```
+
+## Type Hints
+
+The SDK is fully typed. Enable strict type checking in your IDE for the best experience:
+
+```python
+from poof import Poof, Result
+from poof.types import Format, Size, Channels
+
+def process_image(
+    client: Poof,
+    path: str,
+    format: Format = "png",
+    size: Size = "full",
+) -> Result:
+    return client.remove(path, format=format, size=size)
+```
+
+## Links
+
+- [PyPI Package](https://pypi.org/project/poof/)
+- [GitHub Repository](https://github.com/poof-bg/poof-python)
+- [API Reference](/api-reference/remove-background)

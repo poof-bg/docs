@@ -1,0 +1,403 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Poof API",
+    "description": "The developer-first standard for background removal. Precise, fast, and scalable.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Poof Support",
+      "email": "support@poof.bg",
+      "url": "https://poof.bg"
+    },
+    "license": {
+      "name": "Proprietary",
+      "url": "https://poof.bg/terms"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.poof.bg/v1",
+      "description": "Production API"
+    }
+  ],
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ],
+  "paths": {
+    "/remove": {
+      "post": {
+        "operationId": "removeBackground",
+        "summary": "Remove Background",
+        "description": "Remove background from an image. This is a synchronous endpoint that returns the processed image directly in the response body.",
+        "tags": ["Image Processing"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["image_file"],
+                "properties": {
+                  "image_file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "The image file to process. Max 20MB."
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": ["png", "jpg", "webp"],
+                    "default": "png",
+                    "description": "Resulting image format."
+                  },
+                  "channels": {
+                    "type": "string",
+                    "enum": ["rgba", "rgb"],
+                    "default": "rgba",
+                    "description": "Output color channels. Use 'rgba' for transparency, 'rgb' for opaque."
+                  },
+                  "bg_color": {
+                    "type": "string",
+                    "description": "Background color (hex, rgb, or color name). Only applies when channels is 'rgb'.",
+                    "example": "#ffffff"
+                  },
+                  "size": {
+                    "type": "string",
+                    "enum": ["full", "preview", "small", "medium", "large"],
+                    "default": "full",
+                    "description": "Output image size preset."
+                  },
+                  "crop": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Whether to crop the image to the subject bounds."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully processed image",
+            "headers": {
+              "Content-Type": {
+                "description": "MIME type of the returned image",
+                "schema": {
+                  "type": "string",
+                  "example": "image/png"
+                }
+              },
+              "X-Request-ID": {
+                "description": "Unique request identifier for support",
+                "schema": {
+                  "type": "string",
+                  "example": "req_abc123xyz"
+                }
+              },
+              "X-Processing-Time-Ms": {
+                "description": "Processing time in milliseconds",
+                "schema": {
+                  "type": "integer",
+                  "example": 450
+                }
+              },
+              "X-Image-Width": {
+                "description": "Output image width in pixels",
+                "schema": {
+                  "type": "integer",
+                  "example": 1920
+                }
+              },
+              "X-Image-Height": {
+                "description": "Output image height in pixels",
+                "schema": {
+                  "type": "integer",
+                  "example": 1080
+                }
+              }
+            },
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/webp": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "validation_error": {
+                    "summary": "Validation Error",
+                    "value": {
+                      "code": "validation_error",
+                      "message": "One or more parameters are invalid",
+                      "details": "Invalid value for 'format'. Expected: png, jpg, webp",
+                      "request_id": "req_abc123"
+                    }
+                  },
+                  "missing_image": {
+                    "summary": "Missing Image",
+                    "value": {
+                      "code": "missing_image",
+                      "message": "The request did not contain an image file",
+                      "details": "Ensure you are sending multipart/form-data with field 'image_file'",
+                      "request_id": "req_abc123"
+                    }
+                  },
+                  "image_too_large": {
+                    "summary": "Image Too Large",
+                    "value": {
+                      "code": "image_too_large",
+                      "message": "The uploaded image exceeds the maximum size",
+                      "details": "Maximum file size is 20MB",
+                      "request_id": "req_abc123"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "authentication_error",
+                  "message": "Invalid or missing API key",
+                  "details": "Check your 'x-api-key' header",
+                  "request_id": "req_abc123"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "payment_required",
+                  "message": "Insufficient credits",
+                  "details": "Upgrade your plan or wait for the next billing cycle",
+                  "request_id": "req_abc123"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "permission_denied",
+                  "message": "Permission denied",
+                  "details": "Your account may be suspended or the API key revoked",
+                  "request_id": "req_abc123"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "rate_limit_exceeded",
+                  "message": "Rate limit exceeded",
+                  "details": "Implement exponential backoff and retry",
+                  "request_id": "req_abc123"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "internal_server_error",
+                  "message": "Internal server error",
+                  "details": "Please try again later",
+                  "request_id": "req_abc123"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "upstream_error",
+                  "message": "Upstream processing failed",
+                  "details": "Retry with the same Idempotency-Key",
+                  "request_id": "req_abc123"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me": {
+      "get": {
+        "operationId": "getMe",
+        "summary": "Get Account Info",
+        "description": "Returns information about the authenticated account including plan details and credit usage.",
+        "tags": ["Account"],
+        "responses": {
+          "200": {
+            "description": "Account information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountInfo"
+                },
+                "example": {
+                  "organizationId": "org_abc123",
+                  "plan": "Pro",
+                  "maxCredits": 5000,
+                  "usedCredits": 1234,
+                  "autoRechargeThreshold": 100
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "description": "Your API key. Get one at https://dash.poof.bg"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": ["code", "message", "request_id"],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Machine-readable error code",
+            "enum": [
+              "authentication_error",
+              "permission_denied",
+              "payment_required",
+              "rate_limit_exceeded",
+              "validation_error",
+              "missing_image",
+              "image_too_large",
+              "upstream_error",
+              "internal_server_error"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message"
+          },
+          "details": {
+            "type": "string",
+            "description": "Additional details or troubleshooting steps"
+          },
+          "request_id": {
+            "type": "string",
+            "description": "Unique request ID for support"
+          }
+        }
+      },
+      "AccountInfo": {
+        "type": "object",
+        "properties": {
+          "organizationId": {
+            "type": "string",
+            "description": "Your organization ID"
+          },
+          "plan": {
+            "type": "string",
+            "description": "Current plan name"
+          },
+          "maxCredits": {
+            "type": "integer",
+            "description": "Total credits available in billing cycle"
+          },
+          "usedCredits": {
+            "type": "integer",
+            "description": "Credits used in current billing cycle"
+          },
+          "autoRechargeThreshold": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Credit threshold for auto-recharge (if enabled)"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Image Processing",
+      "description": "Background removal and image processing operations"
+    },
+    {
+      "name": "Account",
+      "description": "Account and billing information"
+    }
+  ],
+  "externalDocs": {
+    "description": "Poof API Documentation",
+    "url": "https://docs.poof.bg"
+  }
+}

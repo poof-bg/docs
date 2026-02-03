@@ -1,0 +1,147 @@
+---
+title: Authentication
+description: "Secure your API requests with API keys"
+---
+
+## API Key Authentication
+
+All Poof API requests require authentication via an API key. Include your key in the `x-api-key` header:
+
+```bash
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "x-api-key: poof_your_api_key" \
+  -F "image_file=@photo.jpg"
+```
+
+## Getting Your API Key
+
+<Steps>
+  <Step title="Sign In">
+    Go to [dash.poof.bg](https://dash.poof.bg) and log in to your account.
+  </Step>
+  <Step title="Navigate to API Keys">
+    Click on **API Keys** in the sidebar.
+  </Step>
+  <Step title="Create or Copy">
+    Copy your existing key or create a new one. Keys start with `poof_`.
+  </Step>
+</Steps>
+
+## Security Best Practices
+
+<Warning>
+**Never expose your API key in client-side code.** Anyone with your key can make requests on your behalf and consume your credits.
+</Warning>
+
+### Do's and Don'ts
+
+<CardGroup cols={2}>
+  <Card title="✅ Do" icon="check">
+    - Store keys in environment variables
+    - Use server-side code for API calls
+    - Rotate keys periodically
+    - Use separate keys for dev/prod
+  </Card>
+  <Card title="❌ Don't" icon="xmark">
+    - Commit keys to version control
+    - Include keys in frontend JavaScript
+    - Share keys in public channels
+    - Use production keys for testing
+  </Card>
+</CardGroup>
+
+### Environment Variables
+
+Store your API key in an environment variable:
+
+<Tabs>
+  <Tab title="Linux/macOS">
+    ```bash
+    export POOF_API_KEY="poof_your_api_key"
+    ```
+  </Tab>
+  <Tab title="Windows">
+    ```powershell
+    $env:POOF_API_KEY = "poof_your_api_key"
+    ```
+  </Tab>
+  <Tab title=".env file">
+    ```bash
+    # .env (add to .gitignore!)
+    POOF_API_KEY=poof_your_api_key
+    ```
+  </Tab>
+</Tabs>
+
+Then use it in your code:
+
+<CodeGroup>
+
+```python Python
+import os
+from poof import Poof
+
+client = Poof(api_key=os.environ["POOF_API_KEY"])
+```
+
+```typescript TypeScript
+import { Poof } from '@poof-bg/sdk';
+
+const poof = new Poof({ 
+  apiKey: process.env.POOF_API_KEY 
+});
+```
+
+```bash cURL
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "x-api-key: $POOF_API_KEY" \
+  -F "image_file=@photo.jpg"
+```
+
+</CodeGroup>
+
+## Key Management
+
+### Multiple Keys
+
+You can create multiple API keys for different purposes:
+
+| Key Name | Environment | Purpose |
+|----------|-------------|---------|
+| `poof_dev_...` | Development | Local testing |
+| `poof_staging_...` | Staging | Pre-production testing |
+| `poof_prod_...` | Production | Live application |
+
+### Rotating Keys
+
+To rotate a key without downtime:
+
+1. Create a new key in the dashboard
+2. Update your application to use the new key
+3. Deploy the change
+4. Delete the old key
+
+### Revoking Keys
+
+If a key is compromised:
+
+1. Go to [dash.poof.bg](https://dash.poof.bg)
+2. Find the compromised key
+3. Click **Revoke** immediately
+4. Create a new key and update your application
+
+<Note>
+Revoked keys stop working immediately. Make sure you have a new key ready before revoking the old one in production.
+</Note>
+
+## Rate Limits
+
+API keys are subject to rate limits based on your plan:
+
+| Plan | Requests/minute |
+|------|-----------------|
+| Free | 10 |
+| Pro | 100 |
+| Enterprise | Custom |
+
+When you exceed the limit, you'll receive a `429 Too Many Requests` response. See [Error Handling](/errors) for details.

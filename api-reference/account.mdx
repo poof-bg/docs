@@ -1,0 +1,141 @@
+---
+title: Get Account Info
+description: "Retrieve account details and credit usage"
+api: "GET /me"
+---
+
+Get information about your account including your current plan, credit balance, and usage statistics.
+
+## Request
+
+No request body required. Just include your API key in the header.
+
+```bash
+curl https://api.poof.bg/v1/me \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+## Response
+
+<ResponseField name="organizationId" type="string">
+  Your unique organization identifier.
+</ResponseField>
+
+<ResponseField name="plan" type="string">
+  Your current subscription plan (e.g., "Free", "Pro", "Enterprise").
+</ResponseField>
+
+<ResponseField name="maxCredits" type="integer">
+  Total credits available in your current billing cycle.
+</ResponseField>
+
+<ResponseField name="usedCredits" type="integer">
+  Credits consumed in the current billing cycle.
+</ResponseField>
+
+<ResponseField name="autoRechargeThreshold" type="integer | null">
+  If auto-recharge is enabled, the credit threshold that triggers a top-up. `null` if disabled.
+</ResponseField>
+
+<ResponseExample>
+
+```json Response
+{
+  "organizationId": "org_abc123xyz",
+  "plan": "Pro",
+  "maxCredits": 5000,
+  "usedCredits": 1234,
+  "autoRechargeThreshold": 100
+}
+```
+
+</ResponseExample>
+
+## Examples
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.poof.bg/v1/me \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+```python Python
+from poof import Poof
+
+client = Poof(api_key="YOUR_API_KEY")
+account = client.get_account()
+
+print(f"Plan: {account.plan}")
+print(f"Credits remaining: {account.max_credits - account.used_credits}")
+```
+
+```typescript TypeScript
+import { Poof } from '@poof-bg/sdk';
+
+const poof = new Poof({ apiKey: 'YOUR_API_KEY' });
+const account = await poof.getAccount();
+
+console.log(`Plan: ${account.plan}`);
+console.log(`Credits remaining: ${account.maxCredits - account.usedCredits}`);
+```
+
+</CodeGroup>
+
+## Use Cases
+
+### Monitoring Usage
+
+Check your credit consumption before processing a batch:
+
+```python
+account = client.get_account()
+remaining = account.max_credits - account.used_credits
+
+if remaining < 100:
+    print("Warning: Low credits, consider upgrading")
+```
+
+### Usage Dashboard
+
+Display account info in your application:
+
+```typescript
+const account = await poof.getAccount();
+
+const usagePercent = (account.usedCredits / account.maxCredits) * 100;
+console.log(`Usage: ${usagePercent.toFixed(1)}%`);
+```
+
+### Pre-flight Check
+
+Verify credentials and check limits before starting a job:
+
+```python
+try:
+    account = client.get_account()
+    images_to_process = 500
+    remaining = account.max_credits - account.used_credits
+    
+    if remaining < images_to_process:
+        raise Exception(f"Not enough credits. Need {images_to_process}, have {remaining}")
+    
+    # Proceed with processing
+except AuthenticationError:
+    print("Invalid API key")
+```
+
+## Error Responses
+
+| Status | Code | Description |
+|--------|------|-------------|
+| 401 | `authentication_error` | Invalid or missing API key |
+
+<RequestExample>
+
+```bash cURL
+curl https://api.poof.bg/v1/me \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+</RequestExample>

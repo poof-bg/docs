@@ -1,0 +1,214 @@
+---
+title: Remove Background
+description: "Remove the background from an image"
+api: "POST /remove"
+---
+
+The core endpoint for background removal. Send an image, get back a processed image with the background removed.
+
+## Request
+
+<ParamField body="image_file" type="file" required>
+  The image file to process. Supports JPEG, PNG, and WebP formats. Maximum size: 20MB.
+</ParamField>
+
+<ParamField body="format" type="string" default="png">
+  Output image format.
+  - `png` — Lossless with transparency support
+  - `jpg` — Smaller file size, no transparency
+  - `webp` — Best compression with transparency
+</ParamField>
+
+<ParamField body="channels" type="string" default="rgba">
+  Output color channels.
+  - `rgba` — Include alpha channel (transparency)
+  - `rgb` — Opaque output, uses `bg_color` for background
+</ParamField>
+
+<ParamField body="bg_color" type="string">
+  Background color when `channels` is `rgb`. Accepts:
+  - Hex: `#ffffff`, `#fff`
+  - RGB: `rgb(255, 255, 255)`
+  - Named: `white`, `black`, `red`
+</ParamField>
+
+<ParamField body="size" type="string" default="full">
+  Output image size preset.
+  - `full` — Original resolution
+  - `preview` — 256px max dimension
+  - `small` — 512px max dimension
+  - `medium` — 1024px max dimension
+  - `large` — 2048px max dimension
+</ParamField>
+
+<ParamField body="crop" type="boolean" default="false">
+  Crop the output to the subject bounds, removing empty space around the subject.
+</ParamField>
+
+## Response
+
+The API returns the processed image directly in the response body. Check the response headers for metadata:
+
+| Header | Description |
+|--------|-------------|
+| `Content-Type` | MIME type of the image (`image/png`, `image/jpeg`, `image/webp`) |
+| `X-Request-ID` | Unique request ID for support inquiries |
+| `X-Processing-Time-Ms` | Processing time in milliseconds |
+| `X-Image-Width` | Output image width in pixels |
+| `X-Image-Height` | Output image height in pixels |
+
+## Examples
+
+### Basic Usage
+
+Remove background and save as PNG with transparency:
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "x-api-key: YOUR_API_KEY" \
+  -F "image_file=@photo.jpg" \
+  -o result.png
+```
+
+```python Python
+from poof import Poof
+
+client = Poof(api_key="YOUR_API_KEY")
+result = client.remove("photo.jpg")
+result.save("result.png")
+```
+
+```typescript TypeScript
+import { Poof } from '@poof-bg/sdk';
+import fs from 'fs/promises';
+
+const poof = new Poof({ apiKey: 'YOUR_API_KEY' });
+const image = await fs.readFile('photo.jpg');
+const result = await poof.remove(image);
+await fs.writeFile('result.png', result);
+```
+
+</CodeGroup>
+
+### White Background
+
+Get a JPEG with a white background (great for e-commerce):
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "x-api-key: YOUR_API_KEY" \
+  -F "image_file=@product.jpg" \
+  -F "format=jpg" \
+  -F "channels=rgb" \
+  -F "bg_color=#ffffff" \
+  -o product-white-bg.jpg
+```
+
+```python Python
+result = client.remove(
+    "product.jpg",
+    format="jpg",
+    channels="rgb",
+    bg_color="#ffffff"
+)
+result.save("product-white-bg.jpg")
+```
+
+```typescript TypeScript
+const result = await poof.remove(image, {
+  format: 'jpg',
+  channels: 'rgb',
+  bgColor: '#ffffff'
+});
+```
+
+</CodeGroup>
+
+### Cropped Thumbnail
+
+Get a small, cropped preview:
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "x-api-key: YOUR_API_KEY" \
+  -F "image_file=@photo.jpg" \
+  -F "size=small" \
+  -F "crop=true" \
+  -o thumbnail.png
+```
+
+```python Python
+result = client.remove(
+    "photo.jpg",
+    size="small",
+    crop=True
+)
+result.save("thumbnail.png")
+```
+
+```typescript TypeScript
+const result = await poof.remove(image, {
+  size: 'small',
+  crop: true
+});
+```
+
+</CodeGroup>
+
+### WebP for Web
+
+Optimal format for web delivery:
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "x-api-key: YOUR_API_KEY" \
+  -F "image_file=@photo.jpg" \
+  -F "format=webp" \
+  -o result.webp
+```
+
+```python Python
+result = client.remove("photo.jpg", format="webp")
+result.save("result.webp")
+```
+
+```typescript TypeScript
+const result = await poof.remove(image, { format: 'webp' });
+```
+
+</CodeGroup>
+
+## Error Responses
+
+| Status | Code | Description |
+|--------|------|-------------|
+| 400 | `validation_error` | Invalid parameter value |
+| 400 | `missing_image` | No image file provided |
+| 400 | `image_too_large` | Image exceeds 20MB limit |
+| 401 | `authentication_error` | Invalid or missing API key |
+| 402 | `payment_required` | Insufficient credits |
+| 429 | `rate_limit_exceeded` | Too many requests |
+| 500 | `internal_server_error` | Server error, retry later |
+
+See [Error Handling](/errors) for detailed troubleshooting.
+
+<RequestExample>
+
+```bash cURL
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "x-api-key: YOUR_API_KEY" \
+  -F "image_file=@photo.jpg" \
+  -F "format=png" \
+  -F "size=full" \
+  -o result.png
+```
+
+</RequestExample>

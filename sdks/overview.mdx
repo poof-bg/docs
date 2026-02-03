@@ -1,0 +1,76 @@
+---
+title: SDKs & Integrations
+description: "Official libraries and integrations for Poof"
+---
+
+We provide official SDKs and integrations to make working with Poof as easy as possible.
+
+## Official SDKs
+
+<CardGroup cols={2}>
+  <Card title="Python" icon="python" href="/sdks/python">
+    `pip install poof`
+    
+    Full-featured SDK with sync and async support.
+  </Card>
+  <Card title="TypeScript / JavaScript" icon="js" href="/sdks/typescript">
+    `npm install @poof-bg/sdk`
+    
+    Works in Node.js, Deno, and Bun.
+  </Card>
+</CardGroup>
+
+## Integrations
+
+<CardGroup cols={2}>
+  <Card title="n8n" icon="webhook" href="/sdks/n8n">
+    No-code workflow automation with the official Poof node.
+  </Card>
+  <Card title="MCP (Claude)" icon="robot" href="/sdks/mcp">
+    Use Poof directly in Claude Desktop and other MCP clients.
+  </Card>
+</CardGroup>
+
+## Quick Comparison
+
+| Feature | Python | TypeScript | n8n | MCP |
+|---------|--------|------------|-----|-----|
+| Background removal | ✅ | ✅ | ✅ | ✅ |
+| Account info | ✅ | ✅ | ✅ | ✅ |
+| Async support | ✅ | ✅ | — | — |
+| Type hints | ✅ | ✅ | — | — |
+| File handling | ✅ | ✅ | ✅ | ✅ |
+| Streaming | ✅ | ✅ | — | — |
+
+## REST API
+
+Don't see your language? The REST API is simple to use directly:
+
+```bash
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "x-api-key: YOUR_API_KEY" \
+  -F "image_file=@photo.jpg" \
+  -o result.png
+```
+
+Check the [API Reference](/api-reference/remove-background) for full documentation.
+
+## Community SDKs
+
+We welcome community contributions! If you've built an SDK for another language, let us know and we'll list it here.
+
+Currently looking for:
+- Go
+- Ruby
+- PHP
+- Rust
+- Java / Kotlin
+
+## Contributing
+
+All our SDKs are open source. Contributions are welcome:
+
+- [Python SDK](https://github.com/poof-bg/poof-python)
+- [TypeScript SDK](https://github.com/poof-bg/poof-ts)
+- [n8n Node](https://github.com/poof-bg/n8n-nodes-poof)
+- [MCP Server](https://github.com/poof-bg/mcp-server-poof)

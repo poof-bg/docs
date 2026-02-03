@@ -1,0 +1,196 @@
+---
+title: n8n Integration
+description: "Use Poof in your n8n workflows"
+---
+
+The official Poof node for n8n lets you remove backgrounds without writing any code.
+
+## Installation
+
+### Community Nodes (Recommended)
+
+1. Open your n8n instance
+2. Go to **Settings** → **Community Nodes**
+3. Click **Install a community node**
+4. Enter: `n8n-nodes-poof`
+5. Click **Install**
+
+### Manual Installation
+
+```bash
+cd ~/.n8n
+npm install n8n-nodes-poof
+```
+
+Then restart n8n.
+
+## Configuration
+
+### Add Credentials
+
+1. Go to **Credentials** → **Add Credential**
+2. Search for "Poof API"
+3. Enter your API key from [dash.poof.bg](https://dash.poof.bg)
+4. Save
+
+## Basic Usage
+
+### Remove Background Node
+
+<Steps>
+  <Step title="Add the Poof Node">
+    Search for "Poof" in the nodes panel and drag it onto your canvas.
+  </Step>
+  <Step title="Select Credentials">
+    Choose your Poof API credentials.
+  </Step>
+  <Step title="Configure Input">
+    Set the input source:
+    - **Binary Data** — From a previous node (e.g., HTTP Request, Read File)
+    - **URL** — Direct image URL
+  </Step>
+  <Step title="Set Options">
+    Configure output format, size, and background color as needed.
+  </Step>
+</Steps>
+
+## Node Options
+
+| Option | Values | Description |
+|--------|--------|-------------|
+| **Operation** | Remove Background, Get Account | What to do |
+| **Input Type** | Binary, URL | Where the image comes from |
+| **Binary Property** | `data` | Name of the binary property (for Binary input) |
+| **Image URL** | URL | Direct link to image (for URL input) |
+| **Output Format** | PNG, JPG, WebP | Result format |
+| **Size** | Full, Preview, Small, Medium, Large | Output dimensions |
+| **Channels** | RGBA, RGB | Include transparency or not |
+| **Background Color** | Hex color | Fill color when RGB |
+| **Crop to Subject** | Boolean | Remove empty space |
+
+## Example Workflows
+
+### E-commerce Product Photos
+
+Automatically process product images from a folder:
+
+```
+Read Binary Files → Poof (Remove BG) → Write Binary Files
+```
+
+1. **Read Binary Files**: Watch a folder for new images
+2. **Poof**: Remove background, output as PNG
+3. **Write Binary Files**: Save to processed folder
+
+### API Endpoint
+
+Create an API that removes backgrounds on demand:
+
+```
+Webhook → Poof (Remove BG) → Respond to Webhook
+```
+
+1. **Webhook**: Accept POST with image
+2. **Poof**: Process the image
+3. **Respond**: Return processed image
+
+### Bulk Processing with Spreadsheet
+
+Process images listed in a Google Sheet:
+
+```
+Google Sheets → HTTP Request → Poof → Google Drive
+```
+
+1. **Google Sheets**: Read rows with image URLs
+2. **HTTP Request**: Download each image
+3. **Poof**: Remove backgrounds
+4. **Google Drive**: Upload results
+
+### Airtable Integration
+
+Process images attached to Airtable records:
+
+```
+Airtable Trigger → HTTP Request → Poof → Airtable Update
+```
+
+1. **Airtable Trigger**: When record created/updated
+2. **HTTP Request**: Download attachment
+3. **Poof**: Remove background
+4. **Airtable Update**: Add processed image to record
+
+## Working with Binary Data
+
+The Poof node outputs binary data. To use it:
+
+### Save to File
+```
+Poof → Write Binary File
+```
+
+### Upload to Cloud
+```
+Poof → S3 / Google Drive / Dropbox
+```
+
+### Return via API
+```
+Poof → Respond to Webhook (Binary)
+```
+
+### Convert to Base64
+```
+Poof → Move Binary Data (to JSON)
+```
+
+## Error Handling
+
+Add an **Error Trigger** node to handle failures:
+
+```
+Poof ──┬── (success) → Continue
+       └── (error) → Error Trigger → Slack/Email notification
+```
+
+Common errors:
+- `401` — Check your API credentials
+- `402` — Out of credits
+- `429` — Rate limited, add a Wait node
+
+## Rate Limiting
+
+If processing many images, add delays to avoid rate limits:
+
+```
+Split In Batches (batch size: 5) → Poof → Wait (1 second)
+```
+
+## Check Account Balance
+
+Use the **Get Account** operation to check credits before processing:
+
+```
+Poof (Get Account) → IF (credits > 100) → Process Images
+                           └── (else) → Alert Low Credits
+```
+
+## Tips
+
+<Tip>
+**Use Preview size for testing** — It's faster and uses fewer credits while you're building your workflow.
+</Tip>
+
+<Tip>
+**Set up error notifications** — Connect failed executions to Slack or email so you know when something goes wrong.
+</Tip>
+
+<Tip>
+**Batch your operations** — Process images in groups of 5-10 with delays to avoid rate limits.
+</Tip>
+
+## Links
+
+- [npm Package](https://www.npmjs.com/package/n8n-nodes-poof)
+- [GitHub Repository](https://github.com/poof-bg/n8n-nodes-poof)
+- [n8n Documentation](https://docs.n8n.io/)

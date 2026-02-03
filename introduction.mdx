@@ -1,0 +1,118 @@
+---
+title: Introduction
+description: "The developer-first standard for background removal. Precise, fast, and scalable."
+---
+
+<img
+  className="block dark:hidden"
+  src="/images/hero-light.svg"
+  alt="Poof Hero"
+/>
+<img
+  className="hidden dark:block"
+  src="/images/hero-dark.svg"
+  alt="Poof Hero"
+/>
+
+## What is Poof?
+
+Poof is a background removal API built for developers who need precision at scale. Whether you're building an e-commerce platform, a photo editing app, or automating image workflows, Poof delivers consistent, high-quality results with a simple API.
+
+<CardGroup cols={2}>
+  <Card
+    title="Quick Start"
+    icon="rocket"
+    href="/quickstart"
+  >
+    Make your first API call in under 2 minutes
+  </Card>
+  <Card
+    title="API Reference"
+    icon="code"
+    href="/api-reference/remove-background"
+  >
+    Explore endpoints and parameters
+  </Card>
+  <Card
+    title="SDKs"
+    icon="puzzle-piece"
+    href="/sdks/overview"
+  >
+    Python, TypeScript, n8n, and MCP integrations
+  </Card>
+  <Card
+    title="Dashboard"
+    icon="gauge"
+    href="https://dash.poof.bg"
+  >
+    Get your API key and manage usage
+  </Card>
+</CardGroup>
+
+## Key Features
+
+<AccordionGroup>
+  <Accordion title="🎯 Precision Edge Detection">
+    State-of-the-art AI that handles hair, fur, transparency, and complex edges with pixel-perfect accuracy.
+  </Accordion>
+  <Accordion title="⚡ Fast Processing">
+    Sub-second response times for most images. Process thousands of images without breaking a sweat.
+  </Accordion>
+  <Accordion title="🔧 Flexible Output">
+    PNG with transparency, JPEG with custom backgrounds, WebP for web optimization. Crop, resize, and customize.
+  </Accordion>
+  <Accordion title="📦 Simple Integration">
+    One endpoint. One API key. SDKs for popular languages and platforms.
+  </Accordion>
+</AccordionGroup>
+
+## Quick Example
+
+Remove a background in seconds:
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "x-api-key: YOUR_API_KEY" \
+  -F "image_file=@photo.jpg" \
+  -o result.png
+```
+
+```python Python
+from poof import Poof
+
+client = Poof(api_key="YOUR_API_KEY")
+result = client.remove("photo.jpg")
+result.save("result.png")
+```
+
+```typescript TypeScript
+import { Poof } from '@poof-bg/sdk';
+
+const poof = new Poof({ apiKey: 'YOUR_API_KEY' });
+const result = await poof.remove(imageBuffer);
+await fs.writeFile('result.png', result);
+```
+
+</CodeGroup>
+
+## How It Works
+
+```mermaid
+sequenceDiagram
+    participant You
+    participant Poof API
+    participant AI Engine
+    
+    You->>Poof API: POST /remove with image
+    Poof API->>AI Engine: Process image
+    AI Engine->>Poof API: Return processed image
+    Poof API->>You: Image with background removed
+```
+
+1. **Upload** — Send your image to the `/remove` endpoint
+2. **Process** — Our AI analyzes and removes the background
+3. **Download** — Receive the processed image in your response
+
+Ready to get started? [Get your API key →](https://dash.poof.bg)
