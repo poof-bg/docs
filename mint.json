@@ -54,7 +54,23 @@
       "group": "API Reference",
       "pages": [
         "api-reference/remove-background",
-        "api-reference/account"
+        "api-reference/account",
+        {
+          "group": "Errors",
+          "icon": "triangle-exclamation",
+          "pages": [
+            "errors/list",
+            "errors/authentication-error",
+            "errors/permission-denied",
+            "errors/payment-required",
+            "errors/rate-limit-exceeded",
+            "errors/validation-error",
+            "errors/missing-image",
+            "errors/image-too-large",
+            "errors/upstream-error",
+            "errors/internal-server-error"
+          ]
+        }
       ]
     },
     {
@@ -65,22 +81,6 @@
         "sdks/typescript",
         "sdks/n8n",
         "sdks/mcp"
-      ]
-    },
-    {
-      "group": "Errors",
-      "icon": "triangle-exclamation",
-      "pages": [
-        "errors/list",
-        "errors/authentication-error",
-        "errors/permission-denied",
-        "errors/payment-required",
-        "errors/rate-limit-exceeded",
-        "errors/validation-error",
-        "errors/missing-image",
-        "errors/image-too-large",
-        "errors/upstream-error",
-        "errors/internal-server-error"
       ]
     }
   ],
