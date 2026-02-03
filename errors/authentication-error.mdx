@@ -1,0 +1,53 @@
+---
+title: Authentication Error
+description: "Invalid or missing API key"
+---
+
+**HTTP Status:** 401
+
+```json
+{
+  "code": "authentication_error",
+  "message": "Invalid or missing API key",
+  "details": "Check your 'x-api-key' header",
+  "request_id": "req_abc123"
+}
+```
+
+## Reasons and How to Fix
+
+### Missing API Key Header
+
+The most common cause is forgetting to include the `x-api-key` header in your request.
+
+```bash
+# ❌ Wrong - missing header
+curl -X POST https://api.poof.bg/v1/remove -F "image_file=@photo.jpg"
+
+# ✅ Correct
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "x-api-key: YOUR_API_KEY" \
+  -F "image_file=@photo.jpg"
+```
+
+### Invalid API Key
+
+Your API key may be incorrect or malformed. API keys start with `pk_` for production keys.
+
+**To fix:**
+1. Go to [dash.poof.bg](https://dash.poof.bg) and copy your API key
+2. Ensure you're using the full key without extra spaces
+3. Check that you haven't accidentally included quotes around the key
+
+### Expired or Revoked Key
+
+If your key was recently regenerated or revoked, old keys will no longer work.
+
+**To fix:**
+1. Log into [dash.poof.bg](https://dash.poof.bg)
+2. Generate a new API key if needed
+3. Update your application with the new key
+
+## Need Help?
+
+If you continue to face issues, contact us at [support@poof.bg](mailto:support@poof.bg) with your `request_id`.

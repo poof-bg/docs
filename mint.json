@@ -68,9 +68,18 @@
       ]
     },
     {
-      "group": "Resources",
+      "group": "Errors",
       "pages": [
-        "errors"
+        "errors/list",
+        "errors/authentication-error",
+        "errors/permission-denied",
+        "errors/payment-required",
+        "errors/rate-limit-exceeded",
+        "errors/validation-error",
+        "errors/missing-image",
+        "errors/image-too-large",
+        "errors/upstream-error",
+        "errors/internal-server-error"
       ]
     }
   ],

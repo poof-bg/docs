@@ -1,0 +1,35 @@
+---
+title: API Error Codes
+description: "Complete reference of Poof API error codes"
+---
+
+Below is a comprehensive list of all possible error codes you might encounter when using the Poof API. Each error includes a description, HTTP status code, and a link to detailed documentation about how to handle it.
+
+## Error Reference Table
+
+| Error Code | Description | HTTP Status |
+|------------|-------------|-------------|
+| [authentication_error](/errors/authentication-error) | Invalid or missing API key | 401 |
+| [permission_denied](/errors/permission-denied) | Access to this resource is forbidden | 403 |
+| [payment_required](/errors/payment-required) | Insufficient credits or plan upgrade needed | 402 |
+| [rate_limit_exceeded](/errors/rate-limit-exceeded) | Too many requests | 429 |
+| [validation_error](/errors/validation-error) | Invalid request parameters | 400 |
+| [missing_image](/errors/missing-image) | No image file in request | 400 |
+| [image_too_large](/errors/image-too-large) | Image exceeds size limit | 400 |
+| [upstream_error](/errors/upstream-error) | Processing service failed | 502 |
+| [internal_server_error](/errors/internal-server-error) | Server error | 500 |
+
+## Error Response Format
+
+All errors follow a consistent JSON response format:
+
+```json
+{
+  "code": "error_code",
+  "message": "Human-readable description",
+  "details": "Additional context or troubleshooting steps",
+  "request_id": "req_abc123xyz"
+}
+```
+
+The `request_id` is useful for support — include it when contacting us about an issue.

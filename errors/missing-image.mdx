@@ -1,0 +1,84 @@
+---
+title: Missing Image
+description: "No image file in request"
+---
+
+**HTTP Status:** 400
+
+```json
+{
+  "code": "missing_image",
+  "message": "The request did not contain an image file",
+  "details": "Ensure you are sending multipart/form-data with field 'image_file'",
+  "request_id": "req_abc123"
+}
+```
+
+## Reasons and How to Fix
+
+### No Image File Provided
+
+The `/remove` endpoint requires an image file in the `image_file` field.
+
+```bash
+# ❌ Wrong - no image
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "x-api-key: KEY"
+
+# ✅ Correct
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "x-api-key: KEY" \
+  -F "image_file=@photo.jpg"
+```
+
+### Wrong Content-Type
+
+The request must use `multipart/form-data` encoding.
+
+```bash
+# ❌ Wrong - JSON body
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "Content-Type: application/json" \
+  -d '{"image": "..."}'
+
+# ✅ Correct - multipart/form-data
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "x-api-key: KEY" \
+  -F "image_file=@photo.jpg"
+```
+
+### Wrong Field Name
+
+The field must be named exactly `image_file`.
+
+```bash
+# ❌ Wrong field name
+-F "image=@photo.jpg"
+-F "file=@photo.jpg"
+
+# ✅ Correct
+-F "image_file=@photo.jpg"
+```
+
+## SDK Examples
+
+<CodeGroup>
+```python Python
+from poof import Poof
+
+client = Poof(api_key="YOUR_KEY")
+result = client.remove_background("photo.jpg")  # File path
+result = client.remove_background(image_bytes)   # Bytes
+```
+
+```typescript TypeScript
+import { Poof } from '@poof-bg/js';
+
+const client = new Poof({ apiKey: 'YOUR_KEY' });
+const result = await client.removeBackground(file);  // File or Blob
+```
+</CodeGroup>
+
+## Need Help?
+
+Contact us at [support@poof.bg](mailto:support@poof.bg) with your `request_id`.

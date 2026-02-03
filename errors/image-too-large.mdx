@@ -1,0 +1,56 @@
+---
+title: Image Too Large
+description: "Image exceeds size limit"
+---
+
+**HTTP Status:** 400
+
+```json
+{
+  "code": "image_too_large",
+  "message": "The uploaded image exceeds the maximum size",
+  "details": "Maximum file size is 20MB",
+  "request_id": "req_abc123"
+}
+```
+
+## Reasons and How to Fix
+
+### File Size Exceeds 20MB
+
+The maximum allowed file size is 20MB.
+
+**To fix:**
+1. Compress the image before uploading
+2. Resize to smaller dimensions
+3. Use a more efficient format (JPEG instead of PNG for photos)
+
+### Image Compression Tips
+
+```python
+from PIL import Image
+
+# Resize large images
+img = Image.open("large_photo.jpg")
+img.thumbnail((4096, 4096))  # Max 4096px on longest side
+img.save("resized.jpg", quality=85)
+```
+
+```bash
+# Using ImageMagick
+convert large_photo.jpg -resize 4096x4096\> -quality 85 resized.jpg
+```
+
+### Recommended Dimensions
+
+For best results, images don't need to be huge:
+
+| Use Case | Recommended Size |
+|----------|-----------------|
+| Web thumbnails | 800×800 |
+| E-commerce | 2000×2000 |
+| Print quality | 4000×4000 |
+
+## Need Help?
+
+Contact us at [support@poof.bg](mailto:support@poof.bg) with your `request_id`.

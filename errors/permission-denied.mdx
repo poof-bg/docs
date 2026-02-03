@@ -1,0 +1,47 @@
+---
+title: Permission Denied
+description: "Access to this resource is forbidden"
+---
+
+**HTTP Status:** 403
+
+```json
+{
+  "code": "permission_denied",
+  "message": "Permission denied",
+  "details": "Your account may be suspended or the API key revoked",
+  "request_id": "req_abc123"
+}
+```
+
+## Reasons and How to Fix
+
+### Account Suspended
+
+Your account may have been suspended due to a policy violation or billing issue.
+
+**To fix:**
+1. Check your email for any notifications from Poof
+2. Log into [dash.poof.bg](https://dash.poof.bg) to check account status
+3. Contact [support@poof.bg](mailto:support@poof.bg) if you believe this is an error
+
+### API Key Revoked
+
+The API key you're using may have been revoked.
+
+**To fix:**
+1. Log into [dash.poof.bg](https://dash.poof.bg)
+2. Check if your API key is still active
+3. Generate a new key if needed
+
+### Terms of Service Violation
+
+Automated abuse detection may have flagged your usage.
+
+**To fix:**
+- Review our [Terms of Service](https://poof.bg/terms)
+- Contact support to discuss your use case
+
+## Need Help?
+
+Contact us at [support@poof.bg](mailto:support@poof.bg) with your `request_id`.

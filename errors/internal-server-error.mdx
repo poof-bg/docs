@@ -1,0 +1,58 @@
+---
+title: Internal Server Error
+description: "Server error"
+---
+
+**HTTP Status:** 500
+
+```json
+{
+  "code": "internal_server_error",
+  "message": "Internal server error",
+  "details": "Please try again later",
+  "request_id": "req_abc123"
+}
+```
+
+## Reasons and How to Fix
+
+### Unexpected Server Error
+
+Something went wrong on our end. This is not your fault.
+
+**To fix:**
+1. Wait a moment and retry the request
+2. Check [status.poof.bg](https://status.poof.bg) for any ongoing incidents
+3. Contact support if the issue persists
+
+### Retry Strategy
+
+```python
+import time
+
+def process_with_retry(image_path, max_retries=3):
+    for attempt in range(max_retries):
+        try:
+            return client.remove_background(image_path)
+        except InternalServerError:
+            if attempt < max_retries - 1:
+                time.sleep(2 ** attempt)
+            else:
+                raise
+```
+
+## Service Status
+
+Check [status.poof.bg](https://status.poof.bg) for:
+- Current service status
+- Ongoing incidents
+- Scheduled maintenance
+
+## Need Help?
+
+Please contact us at [support@poof.bg](mailto:support@poof.bg) with:
+- Your `request_id`
+- The time of the error
+- What you were trying to do
+
+We take server errors seriously and will investigate promptly.

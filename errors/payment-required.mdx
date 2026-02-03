@@ -1,0 +1,55 @@
+---
+title: Payment Required
+description: "Insufficient credits or plan upgrade needed"
+---
+
+**HTTP Status:** 402
+
+```json
+{
+  "code": "payment_required",
+  "message": "Insufficient credits",
+  "details": "Upgrade your plan or wait for the next billing cycle",
+  "request_id": "req_abc123"
+}
+```
+
+## Reasons and How to Fix
+
+### Out of Credits
+
+You've used all your available credits for the current billing period.
+
+**To fix:**
+1. Log into [dash.poof.bg](https://dash.poof.bg)
+2. Check your current usage under Account
+3. Either:
+   - Upgrade to a higher plan
+   - Purchase additional credits
+   - Wait for your credits to reset (monthly plans)
+
+### Plan Limit Reached
+
+Your current plan has a processing limit that you've exceeded.
+
+**To fix:**
+- Upgrade to a plan with higher limits at [dash.poof.bg](https://dash.poof.bg)
+
+### Free Trial Expired
+
+If you were on a free trial, it may have ended.
+
+**To fix:**
+- Subscribe to a paid plan to continue using the API
+
+## Check Your Usage
+
+Use the `/me` endpoint to check your current credit balance:
+
+```bash
+curl https://api.poof.bg/v1/me -H "x-api-key: YOUR_API_KEY"
+```
+
+## Need Help?
+
+Contact us at [support@poof.bg](mailto:support@poof.bg) for billing questions.

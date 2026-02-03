@@ -1,0 +1,62 @@
+---
+title: Upstream Error
+description: "Processing service failed"
+---
+
+**HTTP Status:** 502
+
+```json
+{
+  "code": "upstream_error",
+  "message": "Upstream processing failed",
+  "details": "Retry with the same Idempotency-Key",
+  "request_id": "req_abc123"
+}
+```
+
+## Reasons and How to Fix
+
+### Temporary Processing Failure
+
+Our image processing service encountered a temporary issue.
+
+**To fix:**
+1. Wait a few seconds and retry the request
+2. Use exponential backoff for automatic retries
+3. Check [status.poof.bg](https://status.poof.bg) for any ongoing incidents
+
+### Retry Strategy
+
+```python
+import time
+
+def process_with_retry(image_path, max_retries=3):
+    for attempt in range(max_retries):
+        try:
+            return client.remove_background(image_path)
+        except UpstreamError:
+            if attempt < max_retries - 1:
+                time.sleep(2 ** attempt)  # 1s, 2s, 4s
+            else:
+                raise
+```
+
+### Image Processing Issues
+
+Some images may be difficult to process:
+- Corrupted image files
+- Unusual image formats
+- Very complex scenes
+
+**To fix:**
+- Verify the image opens correctly in an image viewer
+- Try converting to a standard JPEG or PNG format
+- Simplify the image if possible
+
+## Service Status
+
+Check [status.poof.bg](https://status.poof.bg) for real-time service status and incident reports.
+
+## Need Help?
+
+If the issue persists, contact us at [support@poof.bg](mailto:support@poof.bg) with your `request_id` and the image (if possible).

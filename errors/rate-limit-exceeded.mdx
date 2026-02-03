@@ -1,0 +1,73 @@
+---
+title: Rate Limit Exceeded
+description: "Too many requests"
+---
+
+**HTTP Status:** 429
+
+```json
+{
+  "code": "rate_limit_exceeded",
+  "message": "Rate limit exceeded",
+  "details": "Implement exponential backoff and retry",
+  "request_id": "req_abc123"
+}
+```
+
+## Reasons and How to Fix
+
+### Too Many Requests
+
+You're sending requests faster than your plan allows.
+
+**To fix:**
+1. Implement exponential backoff in your code
+2. Add delays between requests
+3. Consider upgrading to a higher plan for increased rate limits
+
+### Burst Limit Hit
+
+Even with credits available, there's a per-second burst limit to ensure service stability.
+
+**Best Practices:**
+
+```python
+import time
+import random
+
+def call_with_backoff(func, max_retries=5):
+    for attempt in range(max_retries):
+        try:
+            return func()
+        except RateLimitError:
+            wait = (2 ** attempt) + random.uniform(0, 1)
+            time.sleep(wait)
+    raise Exception("Max retries exceeded")
+```
+
+```typescript
+async function callWithBackoff(fn: () => Promise<any>, maxRetries = 5) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (e) {
+      if (e.code !== 'rate_limit_exceeded') throw e;
+      const wait = Math.pow(2, attempt) + Math.random();
+      await new Promise(r => setTimeout(r, wait * 1000));
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
+```
+
+## Rate Limits by Plan
+
+| Plan | Requests/second | Requests/day |
+|------|----------------|--------------|
+| Free | 1 | 100 |
+| Pro | 10 | 10,000 |
+| Business | 50 | 100,000 |
+
+## Need Help?
+
+Contact us at [support@poof.bg](mailto:support@poof.bg) if you need higher limits.

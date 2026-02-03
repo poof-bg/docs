@@ -1,0 +1,68 @@
+---
+title: Validation Error
+description: "Invalid request parameters"
+---
+
+**HTTP Status:** 400
+
+```json
+{
+  "code": "validation_error",
+  "message": "One or more parameters are invalid",
+  "details": "Invalid value for 'format'. Expected: png, jpg, webp",
+  "request_id": "req_abc123"
+}
+```
+
+## Reasons and How to Fix
+
+### Invalid Parameter Value
+
+A parameter has an invalid value that doesn't match the expected options.
+
+**Common issues:**
+- `format` must be one of: `png`, `jpg`, `webp`
+- `channels` must be one of: `rgba`, `rgb`
+- `size` must be one of: `full`, `preview`, `small`, `medium`, `large`
+- `crop` must be a boolean: `true` or `false`
+
+### Incorrect Data Types
+
+Parameters must be the correct type.
+
+```bash
+# ❌ Wrong - crop should be boolean, not string
+-F "crop=yes"
+
+# ✅ Correct
+-F "crop=true"
+```
+
+### Missing Required Parameters
+
+The `image_file` parameter is required for the `/remove` endpoint.
+
+```bash
+# ❌ Wrong - missing image
+curl -X POST https://api.poof.bg/v1/remove -H "x-api-key: KEY"
+
+# ✅ Correct
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "x-api-key: KEY" \
+  -F "image_file=@photo.jpg"
+```
+
+## Valid Parameter Reference
+
+| Parameter | Type | Valid Values |
+|-----------|------|--------------|
+| `image_file` | file | Required. Max 20MB |
+| `format` | string | `png`, `jpg`, `webp` |
+| `channels` | string | `rgba`, `rgb` |
+| `bg_color` | string | Hex, RGB, or color name |
+| `size` | string | `full`, `preview`, `small`, `medium`, `large` |
+| `crop` | boolean | `true`, `false` |
+
+## Need Help?
+
+Contact us at [support@poof.bg](mailto:support@poof.bg) with your `request_id`.
