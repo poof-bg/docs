@@ -61,7 +61,7 @@ curl https://api.poof.bg/v1/me \
 ```
 
 ```python Python
-from poof import Poof
+from poofbg import Poof
 
 client = Poof(api_key="YOUR_API_KEY")
 account = client.get_account()
@@ -71,7 +71,7 @@ print(f"Credits remaining: {account.max_credits - account.used_credits}")
 ```
 
 ```typescript TypeScript
-import { Poof } from '@poof-bg/sdk';
+import { Poof } from '@poof-bg/js';
 
 const poof = new Poof({ apiKey: 'YOUR_API_KEY' });
 const account = await poof.getAccount();

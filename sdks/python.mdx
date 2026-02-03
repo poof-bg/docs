@@ -16,7 +16,7 @@ pip install poofbg
 ## Quick Start
 
 ```python
-from poof import Poof
+from poofbg import Poof
 
 # Initialize the client
 client = Poof(api_key="poof_your_api_key")
@@ -35,7 +35,7 @@ The SDK looks for your API key in this order:
 
 ```python
 import os
-from poof import Poof
+from poofbg import Poof
 
 # Option 1: Pass directly (not recommended for production)
 client = Poof(api_key="poof_your_api_key")
@@ -113,7 +113,7 @@ For async applications, use `AsyncPoof`:
 
 ```python
 import asyncio
-from poof import AsyncPoof
+from poofbg import AsyncPoof
 
 async def main():
     async with AsyncPoof() as client:
@@ -127,7 +127,7 @@ asyncio.run(main())
 
 ```python
 import asyncio
-from poof import AsyncPoof
+from poofbg import AsyncPoof
 
 async def process_images(image_paths: list[str]):
     async with AsyncPoof() as client:
@@ -175,8 +175,8 @@ print(f"Remaining: {account.max_credits - account.used_credits}")
 ## Error Handling
 
 ```python
-from poof import Poof
-from poof.exceptions import (
+from poofbg import Poof
+from poofbg.exceptions import (
     PoofError,
     AuthenticationError,
     PaymentRequiredError,
@@ -232,8 +232,8 @@ client = Poof(
 The SDK is fully typed. Enable strict type checking in your IDE for the best experience:
 
 ```python
-from poof import Poof, Result
-from poof.types import Format, Size, Channels
+from poofbg import Poof, Result
+from poofbg.types import Format, Size, Channels
 
 def process_image(
     client: Poof,
@@ -246,6 +246,6 @@ def process_image(
 
 ## Links
 
-- [PyPI Package](https://pypi.org/project/poof/)
+- [PyPI Package](https://pypi.org/project/poofbg/)
 - [GitHub Repository](https://github.com/poof-bg/py)
 - [API Reference](/api-reference/remove-background)

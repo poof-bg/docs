@@ -80,10 +80,10 @@ curl -X POST https://api.poof.bg/v1/remove \
 ```
 
 ```python Python
-from poof import Poof
+from poofbg import Poof
 
 client = Poof(api_key="YOUR_API_KEY")
-result = client.remove_background("photo.jpg")
+result = client.remove("photo.jpg")
 result.save("result.png")
 ```
 

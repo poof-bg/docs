@@ -69,6 +69,7 @@
     },
     {
       "group": "Errors",
+      "icon": "triangle-exclamation",
       "pages": [
         "errors/list",
         "errors/authentication-error",
