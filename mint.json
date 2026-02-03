@@ -1,6 +1,11 @@
 {
   "$schema": "https://mintlify.com/schema.json",
   "name": "Poof",
+  "metadata": {
+    "og:image": "https://poof.bg/images/og-image.jpg",
+    "og:image:width": "1200",
+    "og:image:height": "630"
+  },
   "logo": {
     "light": "/logo/light.svg",
     "dark": "/logo/dark.svg"
