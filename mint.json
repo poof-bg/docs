@@ -2,8 +2,8 @@
   "$schema": "https://mintlify.com/schema.json",
   "name": "Poof",
   "logo": {
-    "light": "/logo.svg",
-    "dark": "/logo-dark.svg"
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
   },
   "favicon": "/favicon.svg",
   "colors": {
@@ -45,7 +45,10 @@
   "navigation": [
     {
       "group": "Getting Started",
-      "pages": ["introduction", "quickstart", "authentication"]
+      "pages": [
+        "introduction",
+        "quickstart"
+      ]
     },
     {
       "group": "API Reference",
@@ -66,7 +69,9 @@
     },
     {
       "group": "Resources",
-      "pages": ["errors"]
+      "pages": [
+        "errors"
+      ]
     }
   ],
   "footerSocials": {
@@ -83,5 +88,8 @@
   },
   "feedback": {
     "thumbsRating": true
+  },
+  "modeToggle": {
+    "default": "dark"
   }
 }

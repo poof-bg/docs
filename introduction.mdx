@@ -83,33 +83,20 @@ curl -X POST https://api.poof.bg/v1/remove \
 from poof import Poof
 
 client = Poof(api_key="YOUR_API_KEY")
-result = client.remove("photo.jpg")
+result = client.remove_background("photo.jpg")
 result.save("result.png")
 ```
 
 ```typescript TypeScript
-import { Poof } from '@poof-bg/sdk';
+import { Poof } from '@poof-bg/js';
 
 const poof = new Poof({ apiKey: 'YOUR_API_KEY' });
-const result = await poof.remove(imageBuffer);
-await fs.writeFile('result.png', result);
+const result = await poof.removeBackground(imageFile);
 ```
 
 </CodeGroup>
 
 ## How It Works
-
-```mermaid
-sequenceDiagram
-    participant You
-    participant Poof API
-    participant AI Engine
-    
-    You->>Poof API: POST /remove with image
-    Poof API->>AI Engine: Process image
-    AI Engine->>Poof API: Return processed image
-    Poof API->>You: Image with background removed
-```
 
 1. **Upload** — Send your image to the `/remove` endpoint
 2. **Process** — Our AI analyzes and removes the background

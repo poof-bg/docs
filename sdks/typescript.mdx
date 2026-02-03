@@ -10,22 +10,22 @@ The official TypeScript SDK for Poof works in Node.js, Deno, and Bun with full t
 <Tabs>
   <Tab title="npm">
     ```bash
-    npm install @poof-bg/sdk
+    npm install @poof-bg/js
     ```
   </Tab>
   <Tab title="pnpm">
     ```bash
-    pnpm add @poof-bg/sdk
+    pnpm add @poof-bg/js
     ```
   </Tab>
   <Tab title="yarn">
     ```bash
-    yarn add @poof-bg/sdk
+    yarn add @poof-bg/js
     ```
   </Tab>
   <Tab title="bun">
     ```bash
-    bun add @poof-bg/sdk
+    bun add @poof-bg/js
     ```
   </Tab>
 </Tabs>
@@ -35,7 +35,7 @@ The official TypeScript SDK for Poof works in Node.js, Deno, and Bun with full t
 ## Quick Start
 
 ```typescript
-import { Poof } from '@poof-bg/sdk';
+import { Poof } from '@poof-bg/js';
 import fs from 'fs/promises';
 
 const poof = new Poof({ apiKey: 'poof_your_api_key' });
@@ -53,7 +53,7 @@ The SDK looks for your API key in this order:
 2. Environment variable: `POOF_API_KEY`
 
 ```typescript
-import { Poof } from '@poof-bg/sdk';
+import { Poof } from '@poof-bg/js';
 
 // Option 1: Pass directly
 const poof = new Poof({ apiKey: 'poof_your_api_key' });
@@ -68,7 +68,7 @@ const poof = new Poof();
 ### From Buffer
 
 ```typescript
-import { Poof } from '@poof-bg/sdk';
+import { Poof } from '@poof-bg/js';
 import fs from 'fs/promises';
 
 const poof = new Poof();
@@ -81,7 +81,7 @@ await fs.writeFile('result.png', result);
 ### From File Path (Node.js)
 
 ```typescript
-import { Poof } from '@poof-bg/sdk';
+import { Poof } from '@poof-bg/js';
 import fs from 'fs/promises';
 
 const poof = new Poof();
@@ -138,7 +138,7 @@ console.log(response.height);         // number - output height
 ## Parallel Processing
 
 ```typescript
-import { Poof } from '@poof-bg/sdk';
+import { Poof } from '@poof-bg/js';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -175,7 +175,7 @@ console.log(`Remaining: ${account.maxCredits - account.usedCredits}`);
 ## Error Handling
 
 ```typescript
-import { Poof, PoofError, AuthenticationError, PaymentRequiredError, RateLimitError } from '@poof-bg/sdk';
+import { Poof, PoofError, AuthenticationError, PaymentRequiredError, RateLimitError } from '@poof-bg/js';
 
 const poof = new Poof();
 
@@ -242,7 +242,7 @@ import type {
   Format,
   Size,
   Channels,
-} from '@poof-bg/sdk';
+} from '@poof-bg/js';
 
 const options: RemoveOptions = {
   format: 'png',
@@ -258,7 +258,7 @@ const options: RemoveOptions = {
 ```typescript
 import express from 'express';
 import multer from 'multer';
-import { Poof } from '@poof-bg/sdk';
+import { Poof } from '@poof-bg/js';
 
 const app = express();
 const upload = multer();
@@ -285,7 +285,7 @@ app.listen(3000);
 
 ```typescript
 // app/api/remove-bg/route.ts
-import { Poof } from '@poof-bg/sdk';
+import { Poof } from '@poof-bg/js';
 import { NextRequest, NextResponse } from 'next/server';
 
 const poof = new Poof();
@@ -309,6 +309,6 @@ export async function POST(request: NextRequest) {
 
 ## Links
 
-- [npm Package](https://www.npmjs.com/package/@poof-bg/sdk)
+- [npm Package](https://www.npmjs.com/package/@poof-bg/js)
 - [GitHub Repository](https://github.com/poof-bg/poof-ts)
 - [API Reference](/api-reference/remove-background)
