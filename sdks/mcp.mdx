@@ -3,24 +3,29 @@ title: MCP Server
 description: "Use Poof with Claude Desktop and other MCP clients"
 ---
 
-The Poof MCP (Model Context Protocol) server lets you use background removal directly in Claude Desktop, Cursor, and other MCP-compatible AI tools.
+The Poof MCP (Model Context Protocol) server lets you use background removal directly in Claude Desktop, Cursor, Windsurf, and other MCP-compatible AI tools.
 
 ## What is MCP?
 
-[Model Context Protocol](https://modelcontextprotocol.io/) is an open standard that lets AI assistants use external tools. With the Poof MCP server, Claude can remove backgrounds from images during your conversation.
+[Model Context Protocol](https://modelcontextprotocol.io/) (MCP) is an open standard developed by Anthropic that enables AI assistants to securely connect with external tools and data sources. Think of it like a "USB-C for AI applications" — it provides a standardized way for AI assistants to discover and use capabilities from external services.
+
+With the Poof MCP server, Claude and other AI assistants can:
+- Remove backgrounds from images during conversations
+- Check account balances and credit usage
+- Process images from URLs, file paths, or base64 data
 
 ## Installation
 
 ### npx (Recommended)
 
-No installation needed — just configure Claude Desktop to use it:
+No installation required — run directly via npx:
 
 ```json
 {
   "mcpServers": {
     "poof": {
       "command": "npx",
-      "args": ["-y", "@poof-bg/mcp-server"],
+      "args": ["-y", "poof-bg/mcp"],
       "env": {
         "POOF_API_KEY": "poof_your_api_key"
       }
@@ -32,7 +37,7 @@ No installation needed — just configure Claude Desktop to use it:
 ### Global Install
 
 ```bash
-npm install -g @poof-bg/mcp-server
+npm install -g poof-bg/mcp
 ```
 
 Then configure:
@@ -50,27 +55,32 @@ Then configure:
 }
 ```
 
-## Claude Desktop Setup
+## Configuration
+
+### Required Environment Variable
+
+| Variable | Description |
+|----------|-------------|
+| `POOF_API_KEY` | Your Poof API key from [dash.poof.bg](https://dash.poof.bg) |
+
+### Claude Desktop Setup
 
 <Steps>
   <Step title="Get Your API Key">
     Copy your API key from [dash.poof.bg](https://dash.poof.bg).
   </Step>
   <Step title="Open Claude Settings">
-    Click the Claude menu → **Settings** → **Developer**.
-  </Step>
-  <Step title="Edit Config">
-    Click **Edit Config** to open `claude_desktop_config.json`.
+    Click the Claude menu → **Settings** → **Developer** → **Edit Config**.
   </Step>
   <Step title="Add Poof Server">
-    Add the Poof server configuration:
+    Add the Poof server configuration to your `claude_desktop_config.json`:
     
     ```json
     {
       "mcpServers": {
         "poof": {
           "command": "npx",
-          "args": ["-y", "@poof-bg/mcp-server"],
+          "args": ["-y", "poof-bg/mcp"],
           "env": {
             "POOF_API_KEY": "poof_your_api_key"
           }
@@ -80,127 +90,108 @@ Then configure:
     ```
   </Step>
   <Step title="Restart Claude">
-    Quit and reopen Claude Desktop.
+    Quit and reopen Claude Desktop for the changes to take effect.
   </Step>
 </Steps>
 
+### Configuration File Locations
+
+**macOS:**
+```
+~/Library/Application Support/Claude/claude_desktop_config.json
+```
+
+**Windows:**
+```
+%APPDATA%\Claude\claude_desktop_config.json
+```
+
 ## Available Tools
 
-Once configured, Claude has access to these tools:
+Once configured, your AI assistant has access to these tools:
 
-### `poof_remove_background`
+### `remove_background`
 
-Remove the background from an image.
+Remove the background from an image. Supports multiple input formats and provides flexible output options.
 
 **Parameters:**
-- `image_path` (string) — Path to the image file
-- `output_path` (string, optional) — Where to save the result
-- `format` (string, optional) — Output format: png, jpg, webp
-- `size` (string, optional) — Size preset: full, preview, small, medium, large
-- `crop` (boolean, optional) — Crop to subject bounds
-- `bg_color` (string, optional) — Background color for RGB output
 
-### `poof_get_account`
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `image` | string | **Yes** | Image input as file path, URL, or base64-encoded data |
+| `format` | string | No | Output format: `png`, `jpg`, `webp` (default: `png`) |
+| `channels` | string | No | Color channels: `rgba` (transparent) or `rgb` (opaque) (default: `rgba`) |
+| `bg_color` | string | No | Background color for RGB output. Hex (e.g., `#ffffff`), RGB, or color name |
+| `size` | string | No | Output size: `full`, `preview`, `small`, `medium`, `large` (default: `full`) |
+| `crop` | boolean | No | Crop image to subject bounds (default: `false`) |
+| `output_path` | string | No | Save result to this file path instead of returning base64 |
 
-Check your account balance and plan details.
+**Return Value:**
+- If `output_path` is specified: Saves to file and returns file path
+- Otherwise: Returns base64-encoded image data with metadata (width, height, processing time)
+
+### `get_account`
+
+Check your account balance, plan details, and credit usage.
+
+**Parameters:** None
+
+**Returns:**
+```json
+{
+  "success": true,
+  "data": {
+    "organizationId": "org_abc123",
+    "plan": "Pro",
+    "maxCredits": 5000,
+    "usedCredits": 1234,
+    "remainingCredits": 3766,
+    "autoRechargeThreshold": 100
+  }
+}
+```
 
 ## Example Conversations
 
-### Basic Usage
+### Remove Background from URL
 
-> **You:** Remove the background from ~/Desktop/photo.jpg
+> **You:** Remove the background from this image: https://example.com/product.jpg
 
-> **Claude:** I'll remove the background from that photo for you.
+> **Claude:** I'll remove the background from that image for you.
 > 
-> [Uses poof_remove_background tool]
+> [Uses remove_background tool with the URL]
 > 
-> Done! I've saved the result to ~/Desktop/photo_no_bg.png. The background has been removed and the image now has a transparent background.
+> Done! I've processed the image. The background has been removed and here's the result with a transparent background.
 
-### With Options
+### Remove Background from Local File
+
+> **You:** Remove the background from ~/Desktop/photo.png and save it to ~/Desktop/photo-nobg.png
+
+> **Claude:** I'll process that photo and save it to the specified location.
+>
+> [Uses remove_background with output_path]
+>
+> Done! I've saved the processed image to ~/Desktop/photo-nobg.png with the background removed.
+
+### White Background for E-commerce
 
 > **You:** Take ~/Downloads/product.jpg, remove the background, and give me a white background version for our website
 
-> **Claude:** I'll process that product image with a white background.
+> **Claude:** I'll process that product image with a white background for your website.
 >
-> [Uses poof_remove_background with format="jpg", bg_color="#ffffff"]
+> [Uses remove_background with channels="rgb", bg_color="#ffffff", format="jpg"]
 >
-> Done! I've created ~/Downloads/product_white_bg.jpg with a clean white background, perfect for your website.
+> Done! I've created a version with a clean white background, perfect for e-commerce display.
 
-### Checking Credits
+### Check Account Status
 
 > **You:** How many Poof credits do I have left?
 
 > **Claude:** Let me check your account.
 >
-> [Uses poof_get_account tool]
+> [Uses get_account tool]
 >
 > You're on the Pro plan with 3,766 credits remaining out of 5,000 this billing cycle.
-
-## Configuration Options
-
-### Custom Output Directory
-
-Always save results to a specific folder:
-
-```json
-{
-  "mcpServers": {
-    "poof": {
-      "command": "npx",
-      "args": ["-y", "@poof-bg/mcp-server"],
-      "env": {
-        "POOF_API_KEY": "poof_your_api_key",
-        "POOF_OUTPUT_DIR": "~/Pictures/Processed"
-      }
-    }
-  }
-}
-```
-
-### Default Options
-
-Set default processing options:
-
-```json
-{
-  "mcpServers": {
-    "poof": {
-      "command": "npx",
-      "args": ["-y", "@poof-bg/mcp-server"],
-      "env": {
-        "POOF_API_KEY": "poof_your_api_key",
-        "POOF_DEFAULT_FORMAT": "webp",
-        "POOF_DEFAULT_SIZE": "medium"
-      }
-    }
-  }
-}
-```
-
-## Troubleshooting
-
-### Server Not Appearing
-
-1. Check that your config file is valid JSON
-2. Ensure the API key is correct
-3. Restart Claude Desktop completely (quit from menu bar)
-4. Check Claude's developer console for errors
-
-### Permission Errors
-
-Claude needs permission to access files. If you get permission errors:
-
-1. Check that the file path is correct
-2. Ensure Claude has access to that directory
-3. Try using an absolute path
-
-### API Errors
-
-Check your API key and credits:
-
-> **You:** Check my Poof account status
-
-If you see authentication errors, verify your `POOF_API_KEY` in the config.
 
 ## Other MCP Clients
 
@@ -208,14 +199,32 @@ The Poof MCP server works with any MCP-compatible client:
 
 ### Cursor
 
-Add to your Cursor settings:
+Add to your Cursor MCP settings (Settings → MCP):
 
 ```json
 {
-  "mcp.servers": {
+  "mcpServers": {
     "poof": {
       "command": "npx",
-      "args": ["-y", "@poof-bg/mcp-server"],
+      "args": ["-y", "poof-bg/mcp"],
+      "env": {
+        "POOF_API_KEY": "poof_your_api_key"
+      }
+    }
+  }
+}
+```
+
+### Windsurf
+
+Add to your Windsurf MCP configuration:
+
+```json
+{
+  "mcpServers": {
+    "poof": {
+      "command": "npx",
+      "args": ["-y", "poof-bg/mcp"],
       "env": {
         "POOF_API_KEY": "poof_your_api_key"
       }
@@ -226,11 +235,201 @@ Add to your Cursor settings:
 
 ### Other Clients
 
-Refer to your MCP client's documentation for how to add servers. The configuration is similar — you need to specify the command and environment variables.
+Refer to your MCP client's documentation for how to add servers. The configuration pattern is consistent across clients — you need to specify:
+- The command to run the server
+- Any arguments
+- Environment variables (at minimum, `POOF_API_KEY`)
+
+## Troubleshooting
+
+### Server Not Appearing
+
+1. **Verify JSON syntax**: Use a JSON validator to ensure your config file is valid
+2. **Check API key**: Ensure your `POOF_API_KEY` is correct and active at [dash.poof.bg](https://dash.poof.bg)
+3. **Full restart**: Quit Claude Desktop completely (from the menu bar) and reopen
+4. **Check logs**: Look at Claude's developer console for error messages
+
+### Permission Errors
+
+If you get permission errors when accessing files:
+
+1. **Check file path**: Ensure the path is correct and the file exists
+2. **Try absolute paths**: Use full paths (e.g., `/Users/name/Desktop/image.jpg` instead of `~/Desktop/image.jpg`)
+3. **macOS permissions**: On macOS, ensure Claude has permission to access the folder (System Settings → Privacy & Security → Files and Folders)
+
+### API Errors
+
+If you see authentication or API errors:
+
+1. Verify your API key is correct
+2. Check your credit balance: log into [dash.poof.bg](https://dash.poof.bg)
+3. Ensure your API key has not expired or been revoked
+
+### "Command not found" Errors
+
+If npx is not found:
+
+1. Ensure Node.js is installed: `node --version` (requires Node.js 18+)
+2. Try installing the server globally: `npm install -g poof-bg/mcp`
+3. Use the global command in your config: `"command": "poof-mcp"`
+
+## For Developers: Adding New Tools
+
+The Poof MCP server is open source and extensible. You can add new tools by modifying the source code.
+
+### Getting the Source Code
+
+```bash
+git clone https://github.com/poof-bg/poof-sdks.git
+cd poof-sdks/mcp-server
+npm install
+```
+
+### Tool Structure
+
+Tools are defined in the `TOOLS` array in `src/index.ts`. Each tool requires:
+
+1. **Tool Definition** — Metadata describing the tool and its parameters
+2. **Handler Function** — The implementation that executes when the tool is called
+
+### Example: Adding a New Tool
+
+Here's how to add a hypothetical `resize_image` tool:
+
+```typescript
+// 1. Add to the TOOLS array
+const TOOLS: Tool[] = [
+  // ... existing tools ...
+  {
+    name: "resize_image",
+    description: "Resize an image to specified dimensions",
+    inputSchema: {
+      type: "object",
+      properties: {
+        image: {
+          type: "string",
+          description: "Image input: base64 data, URL, or file path",
+        },
+        width: {
+          type: "number",
+          description: "Target width in pixels",
+        },
+        height: {
+          type: "number",
+          description: "Target height in pixels",
+        },
+        maintain_aspect: {
+          type: "boolean",
+          default: true,
+          description: "Maintain original aspect ratio",
+        },
+      },
+      required: ["image", "width", "height"],
+    },
+  },
+];
+
+// 2. Add handler in the main switch statement
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  const { name, arguments: args } = request.params;
+
+  try {
+    switch (name) {
+      // ... existing cases ...
+      
+      case "resize_image": {
+        const typedArgs = args as {
+          image: string;
+          width: number;
+          height: number;
+          maintain_aspect?: boolean;
+        };
+
+        // Your implementation here
+        const result = await resizeImage(typedArgs);
+        
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+      
+      // ...
+    }
+  } catch (error) {
+    // Error handling
+  }
+});
+```
+
+### Development Workflow
+
+```bash
+# Install dependencies
+npm install
+
+# Build the project
+npm run build
+
+# Watch mode for development
+npm run dev
+
+# Test the server
+npm start
+```
+
+### Testing Locally
+
+To test your changes with Claude Desktop:
+
+1. Build the project: `npm run build`
+2. Update your Claude config to point to your local build:
+   ```json
+   {
+     "mcpServers": {
+       "poof": {
+         "command": "node",
+         "args": ["/path/to/poof-sdks/mcp-server/dist/index.js"],
+         "env": {
+           "POOF_API_KEY": "your_api_key"
+         }
+       }
+     }
+   }
+   ```
+3. Restart Claude Desktop
+
+### Submitting Contributions
+
+1. Fork the [poof-sdks repository](https://github.com/poof-bg/poof-sdks)
+2. Create a feature branch: `git checkout -b feature/your-tool-name`
+3. Make your changes with tests
+4. Submit a pull request with a clear description
+
+## Architecture Overview
+
+The Poof MCP server implements the [Model Context Protocol](https://modelcontextprotocol.io/) specification:
+
+```
+┌─────────────────┐         ┌──────────────────┐         ┌─────────────┐
+│  Claude Desktop │◄───────►│  Poof MCP Server │◄───────►│  Poof API   │
+│   (or other)    │   MCP   │  (poof-bg/mcp)   │  HTTP   │(api.poof.bg)│
+└─────────────────┘         └──────────────────┘         └─────────────┘
+```
+
+- **MCP Transport**: Uses stdio for communication with the host
+- **Protocol**: JSON-RPC based message exchange
+- **Authentication**: API key passed via environment variable
+- **Input Support**: File paths, URLs, and base64-encoded images
 
 ## Links
 
-- [npm Package](https://www.npmjs.com/package/@poof-bg/mcp-server)
-- [GitHub Repository](https://github.com/poof-bg/mcp)
+- [npm Package](https://www.npmjs.com/package/poof-bg/mcp)
+- [GitHub Repository](https://github.com/poof-bg/poof-sdks/tree/main/mcp-server)
 - [MCP Documentation](https://modelcontextprotocol.io/)
 - [Claude Desktop](https://claude.ai/download)
+- [Poof Dashboard](https://dash.poof.bg)
