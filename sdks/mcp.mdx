@@ -25,7 +25,7 @@ No installation required — run directly via npx:
   "mcpServers": {
     "poof": {
       "command": "npx",
-      "args": ["-y", "@poof/mcp-server"],
+      "args": ["-y", "poof-bg/mcp"],
       "env": {
         "POOF_API_KEY": "poof_your_api_key"
       }
@@ -37,7 +37,7 @@ No installation required — run directly via npx:
 ### Global Install
 
 ```bash
-npm install -g @poof/mcp-server
+npm install -g poof-bg/mcp
 ```
 
 Then configure:
@@ -46,7 +46,7 @@ Then configure:
 {
   "mcpServers": {
     "poof": {
-      "command": "poof-mcp",
+      "command": "poof-mcp-server",
       "env": {
         "POOF_API_KEY": "poof_your_api_key"
       }
@@ -80,7 +80,7 @@ Then configure:
       "mcpServers": {
         "poof": {
           "command": "npx",
-          "args": ["-y", "@poof/mcp-server"],
+          "args": ["-y", "poof-bg/mcp"],
           "env": {
             "POOF_API_KEY": "poof_your_api_key"
           }
@@ -206,7 +206,7 @@ Add to your Cursor MCP settings (Settings → MCP):
   "mcpServers": {
     "poof": {
       "command": "npx",
-      "args": ["-y", "@poof/mcp-server"],
+      "args": ["-y", "poof-bg/mcp"],
       "env": {
         "POOF_API_KEY": "poof_your_api_key"
       }
@@ -224,7 +224,7 @@ Add to your Windsurf MCP configuration:
   "mcpServers": {
     "poof": {
       "command": "npx",
-      "args": ["-y", "@poof/mcp-server"],
+      "args": ["-y", "poof-bg/mcp"],
       "env": {
         "POOF_API_KEY": "poof_your_api_key"
       }
@@ -270,7 +270,7 @@ If you see authentication or API errors:
 If npx is not found:
 
 1. Ensure Node.js is installed: `node --version` (requires Node.js 18+)
-2. Try installing the server globally: `npm install -g @poof/mcp-server`
+2. Try installing the server globally: `npm install -g poof-bg/mcp`
 3. Use the global command in your config: `"command": "poof-mcp"`
 
 ## For Developers: Adding New Tools
@@ -417,7 +417,7 @@ The Poof MCP server implements the [Model Context Protocol](https://modelcontext
 ```
 ┌─────────────────┐         ┌──────────────────┐         ┌─────────────┐
 │  Claude Desktop │◄───────►│  Poof MCP Server │◄───────►│  Poof API   │
-│   (or other)    │   MCP   │  (@poof/mcp-server) │  HTTP   │(api.poof.bg)│
+│   (or other)    │   MCP   │  (poof-bg/mcp)   │  HTTP   │(api.poof.bg)│
 └─────────────────┘         └──────────────────┘         └─────────────┘
 ```
 
@@ -428,7 +428,7 @@ The Poof MCP server implements the [Model Context Protocol](https://modelcontext
 
 ## Links
 
-- [npm Package](https://www.npmjs.com/package/@poof/mcp-server)
+- [npm Package](https://www.npmjs.com/package/poof-bg/mcp)
 - [GitHub Repository](https://github.com/poof-bg/poof-sdks/tree/main/mcp-server)
 - [MCP Documentation](https://modelcontextprotocol.io/)
 - [Claude Desktop](https://claude.ai/download)
