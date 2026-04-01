@@ -22,6 +22,10 @@
   },
   "topbarLinks": [
     {
+      "name": "Status",
+      "url": "https://status.poof.bg"
+    },
+    {
       "name": "Dashboard",
       "url": "https://dash.poof.bg"
     }
@@ -37,9 +41,9 @@
       "url": "api-reference"
     },
     {
-      "name": "SDKs",
+      "name": "Integrations",
       "icon": "puzzle-piece",
-      "url": "sdks"
+      "url": "integrations"
     },
     {
       "name": "GitHub",
@@ -79,13 +83,25 @@
       ]
     },
     {
-      "group": "SDKs & Integrations",
+      "group": "General",
       "pages": [
-        "sdks/overview",
-        "sdks/python",
-        "sdks/typescript",
-        "sdks/n8n",
-        "sdks/mcp"
+        "integrations/overview"
+      ]
+    },
+    {
+      "group": "SDKs",
+      "pages": [
+        "integrations/python",
+        "integrations/typescript"
+      ]
+    },
+    {
+      "group": "Integrations",
+      "pages": [
+        "integrations/mcp",
+        "integrations/n8n",
+        "integrations/zapier",
+        "integrations/make"
       ]
     }
   ],
