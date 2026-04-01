@@ -1,0 +1,107 @@
+---
+title: "MCP"
+description: "Model Context Protocol server for AI-powered background removal"
+---
+
+## Overview
+
+The Poof MCP (Model Context Protocol) server enables powerful background removal capabilities directly within AI development environments like Cursor, Claude Desktop, and VS Code. This integration allows AI models to remove backgrounds from images during your conversation.
+
+## Features
+
+- **Multi-Platform Support** — Works with Claude, Claude Code, Cursor, Windsurf, VS Code, and more
+- **AI-First Design** — Natural language interface for background removal
+- **Multiple Tools** — Remove backgrounds and check account balance
+- **Easy Integration** — Simple setup with popular AI tools
+
+## Installation
+
+### Manual Installation
+
+```bash
+env POOF_API_KEY=your-api-key npx -y @poof-bg/mcp-server
+```
+
+## Integration Setup
+
+### Claude / Claude Desktop / Cowork
+
+Connect directly from Claude without manually configuring an API key.
+
+1. Go to **Settings** → **Connectors**
+2. Click **Add custom connector** and enter `Poof` as the name and `https://api.poof.bg/mcp` as the URL. Click **Add**.
+3. Click **Authorize** when prompted to grant MCP access.
+
+### Claude Code
+
+1. Add the Poof MCP server:
+
+```bash
+claude mcp add --transport http poof https://api.poof.bg/mcp
+```
+
+2. Run `/mcp` in Claude Code and select **Authenticate** for Poof to complete the OAuth flow in your browser.
+
+### ChatGPT
+
+1. Go to **Settings** → **Apps & Connectors**
+2. Click **Create** to add a new connector
+3. Enter `Poof` as the name and `https://api.poof.bg/mcp` as the connector URL
+4. Click **Save**
+
+To use it in a conversation, click the **+** icon in the composer, select **More** → **Developer mode**, and choose the Poof connector.
+
+### Cursor
+
+1. Open Cursor Settings
+2. Navigate to **MCPs & Integrations** → **New MCP Server**
+3. Add new MCP server:
+
+```json
+{
+  "poof": {
+    "command": "npx",
+    "args": ["-y", "@poof-bg/mcp-server"],
+    "env": {
+      "POOF_API_KEY": "your-api-key"
+    }
+  }
+}
+```
+
+### Windsurf
+
+Add to `~/.windsurf/cascade/config.json`:
+
+```json
+{
+  "mcpServers": {
+    "poof": {
+      "command": "npx",
+      "args": ["-y", "@poof-bg/mcp-server"],
+      "env": {
+        "POOF_API_KEY": "your-api-key"
+      }
+    }
+  }
+}
+```
+
+### VS Code
+
+Using the MCP extension:
+
+1. Install the MCP extension
+2. Add Poof server configuration
+3. Set your API key in environment settings
+
+## Configuration
+
+### Environment Variables
+
+- `POOF_API_KEY`: Your Poof API key (required)
+
+## Support
+
+- [GitHub Issues](https://github.com/poof-bg/mcp/issues)
+- [MCP Documentation](https://github.com/poof-bg/mcp#readme)
