@@ -7,19 +7,29 @@ description: "Model Context Protocol server for AI-powered background removal"
 
 The Poof MCP (Model Context Protocol) server enables powerful background removal capabilities directly within AI development environments like Cursor, Claude Desktop, and VS Code. This integration allows AI models to remove backgrounds from images during your conversation.
 
+[Model Context Protocol](https://modelcontextprotocol.io/) (MCP) is an open standard developed by Anthropic that enables AI assistants to securely connect with external tools and data sources — a standardized way for AI assistants to discover and use capabilities from external services.
+
 ## Features
 
-- **Multi-Platform Support** — Works with Claude, Claude Code, Cursor, Windsurf, VS Code, and more
+- **Multi-Platform Support** — Works with Claude, Claude Code, ChatGPT, Cursor, Windsurf, VS Code, and more
+- **Remote or Local** — Connect via the hosted server at `https://api.poof.bg/mcp` (OAuth) or run locally over stdio
 - **AI-First Design** — Natural language interface for background removal
 - **Multiple Tools** — Remove backgrounds and check account balance
-- **Easy Integration** — Simple setup with popular AI tools
 
 ## Installation
 
-### Manual Installation
+The easiest way to connect is the hosted remote server at `https://api.poof.bg/mcp` — no installation needed, and OAuth handles authentication. See [Integration Setup](#integration-setup) below.
+
+To run the server locally instead (stdio transport):
 
 ```bash
-env POOF_API_KEY=your-api-key npx -y @poof-bg/mcp-server
+env POOF_API_KEY=your-api-key npx -y @poof-bg/mcp
+```
+
+Or install globally:
+
+```bash
+npm install -g @poof-bg/mcp
 ```
 
 ## Integration Setup
@@ -61,7 +71,7 @@ To use it in a conversation, click the **+** icon in the composer, select **More
 {
   "poof": {
     "command": "npx",
-    "args": ["-y", "@poof-bg/mcp-server"],
+    "args": ["-y", "@poof-bg/mcp"],
     "env": {
       "POOF_API_KEY": "your-api-key"
     }
@@ -78,7 +88,7 @@ Add to `~/.windsurf/cascade/config.json`:
   "mcpServers": {
     "poof": {
       "command": "npx",
-      "args": ["-y", "@poof-bg/mcp-server"],
+      "args": ["-y", "@poof-bg/mcp"],
       "env": {
         "POOF_API_KEY": "your-api-key"
       }
@@ -95,13 +105,115 @@ Using the MCP extension:
 2. Add Poof server configuration
 3. Set your API key in environment settings
 
+### Other Clients
+
+The configuration pattern is consistent across MCP clients. For remote access, point the client at `https://api.poof.bg/mcp`. For local stdio, specify the command (`npx -y @poof-bg/mcp`) and the `POOF_API_KEY` environment variable.
+
 ## Configuration
 
 ### Environment Variables
 
-- `POOF_API_KEY`: Your Poof API key (required)
+- `POOF_API_KEY`: Your Poof API key (required for local stdio; remote connections can use OAuth instead). Get yours at [dash.poof.bg](https://dash.poof.bg).
+
+## Available Tools
+
+Once configured, your AI assistant has access to these tools:
+
+### `remove_background`
+
+Remove the background from an image. Accepts a URL or base64-encoded image data and returns the processed image as base64.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `image` | string | **Yes** | Image input as a URL or base64-encoded data |
+| `format` | string | No | Output format: `png`, `jpg`, `webp` (default: `png`) |
+| `channels` | string | No | Color channels: `rgba` (transparent) or `rgb` (opaque) (default: `rgba`) |
+| `bg_color` | string | No | Background color for RGB output. Hex (e.g., `#ffffff`), RGB, or color name |
+| `size` | string | No | Output size: `full`, `preview`, `small`, `medium`, `large` (default: `full`) |
+| `crop` | boolean | No | Crop image to subject bounds (default: `false`) |
+
+### `get_account`
+
+Check your account balance, plan details, and credit usage.
+
+**Parameters:** None
+
+**Returns:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "organizationId": "org_abc123",
+    "plan": "Pro",
+    "maxCredits": 5000,
+    "usedCredits": 1234,
+    "remainingCredits": 3766
+  }
+}
+```
+
+## Example Conversations
+
+### Remove Background from an Image
+
+> **You:** Remove the background from this image: https://example.com/product.jpg
+
+> **Claude:** I'll remove the background from that image for you.
+>
+> [Uses remove_background tool with the URL]
+>
+> Done! The background has been removed and here's the result with a transparent background.
+
+### White Background for E-commerce
+
+> **You:** Take this product photo, remove the background, and give me a white background version for our website
+
+> **Claude:** I'll process that product image with a white background for your website.
+>
+> [Uses remove_background with channels="rgb", bg_color="#ffffff", format="jpg"]
+>
+> Done! I've created a version with a clean white background, perfect for e-commerce display.
+
+### Check Account Status
+
+> **You:** How many Poof credits do I have left?
+
+> **Claude:** Let me check your account.
+>
+> [Uses get_account tool]
+>
+> You're on the Pro plan with 3,766 credits remaining out of 5,000 this billing cycle.
+
+## Troubleshooting
+
+### Server Not Appearing
+
+1. **Verify JSON syntax**: Use a JSON validator to ensure your config file is valid
+2. **Check API key**: Ensure your `POOF_API_KEY` is correct and active at [dash.poof.bg](https://dash.poof.bg)
+3. **Full restart**: Quit the client completely and reopen
+4. **Check logs**: Look at your client's developer console for error messages
+
+### API Errors
+
+If you see authentication or API errors:
+
+1. Verify your API key is correct
+2. Check your credit balance at [dash.poof.bg](https://dash.poof.bg)
+3. Ensure your API key has not expired or been revoked
+
+### "Command not found" Errors
+
+If npx is not found when running the local server:
+
+1. Ensure Node.js is installed: `node --version` (requires Node.js 18+)
+2. Try installing the server globally: `npm install -g @poof-bg/mcp`
+3. Use the global command in your config: `"command": "poof-mcp"`
 
 ## Support
 
+- [npm Package](https://www.npmjs.com/package/@poof-bg/mcp)
 - [GitHub Issues](https://github.com/poof-bg/mcp/issues)
 - [MCP Documentation](https://github.com/poof-bg/mcp#readme)
