@@ -46,8 +46,19 @@ The core endpoint for background removal. Send an image, get back a processed im
   Pass `true`/`false`, or an aspect ratio like `1:1`, `4:3`, `16:9` to crop to that ratio around the subject.
 </ParamField>
 
-<ParamField body="padding" type="string">
-  Padding around the subject when `crop` is enabled, as a fraction (`0.1`) or percentage (`10%`).
+<ParamField body="padding" type="string" default="10%">
+  Padding around the subject when `crop` is enabled, added to **each side** as a fraction (`0.1`) or percentage (`10%`) of the subject's size on that axis.
+
+  Pass one value for both axes, or two comma-separated values as `horizontal,vertical` to pad the axes differently — e.g. `10%,7.5%` produces a canvas 120% of the subject's width and 115% of its height.
+
+| `padding`   | Result                                                        |
+|-------------|---------------------------------------------------------------|
+| `0`         | Tight crop to the subject                                     |
+| `10%`       | Canvas is 120% of subject width and 120% of subject height    |
+| `10%,7.5%`  | Canvas is 120% of subject width and 115% of subject height    |
+| `5%,0`      | Horizontal padding only                                       |
+
+  Padding is applied before any aspect-ratio expansion from `crop`. If the padded area extends beyond the original image, it is filled with transparent pixels.
 </ParamField>
 
 ## Response
@@ -189,6 +200,39 @@ result.save("thumbnail.png")
 const result = await poof.remove(image, {
   size: 'preview',
   crop: true
+});
+```
+
+</CodeGroup>
+
+### Consistent Product Shots
+
+Crop to the subject, then add 10% horizontal and 7.5% vertical padding (a 120% × 115% canvas) so every image has the same margins:
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "x-api-key: YOUR_API_KEY" \
+  -F "image_file=@product.jpg" \
+  -F "crop=true" \
+  -F "padding=10%,7.5%" \
+  -o product-cropped.png
+```
+
+```python Python
+result = client.remove(
+    "product.jpg",
+    crop=True,
+    padding="10%,7.5%"
+)
+result.save("product-cropped.png")
+```
+
+```typescript TypeScript
+const result = await poof.remove(image, {
+  crop: true,
+  padding: '10%,7.5%'
 });
 ```
 

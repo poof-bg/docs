@@ -78,7 +78,7 @@
                   },
                   "padding": {
                     "type": "string",
-                    "description": "Padding around the subject when crop is enabled, as a fraction (e.g. '0.1') or percentage (e.g. '10%').",
+                    "description": "Padding around the subject when crop is enabled, added to each side as a fraction (e.g. '0.1') or percentage (e.g. '10%') of the subject's size on that axis. Pass one value for both axes, or two comma-separated values as horizontal,vertical (e.g. '10%,7.5%' gives a canvas 120% of subject width and 115% of subject height). Default '10%'.",
                     "example": "10%"
                   }
                 }
