@@ -7,10 +7,10 @@ description: "Remove your first background in under 2 minutes"
 
 <Steps>
   <Step title="Create an Account">
-    Go to [dash.poof.bg](https://dash.poof.bg) and sign up with your email or GitHub.
+    Go to [dash.poof.bg](https://dash.poof.bg) and sign up with your email, Google, GitHub, GitLab or Microsoft.
   </Step>
   <Step title="Copy Your API Key">
-    Your API key is displayed on the dashboard. It starts with `poof_`.
+    Your API key is displayed on the dashboard. It starts with `pk_`.
   </Step>
   <Step title="Keep It Secret">
     Treat your API key like a password. Never commit it to version control or expose it in client-side code.
@@ -25,7 +25,7 @@ Choose your preferred method:
   <Tab title="cURL">
     ```bash
     curl -X POST https://api.poof.bg/v1/remove \
-      -H "x-api-key: poof_your_api_key" \
+      -H "x-api-key: pk_your_api_key" \
       -F "image_file=@input.jpg" \
       -o output.png
     ```
@@ -38,17 +38,17 @@ Choose your preferred method:
     
     Remove a background:
     ```python
-    from poofbg import Poof
+    from poof import Poof
     
-    client = Poof(api_key="poof_your_api_key")
+    client = Poof(api_key="pk_your_api_key")
     
     # From a file
-    result = client.remove("input.jpg")
+    result = client.remove_background("input.jpg")
     result.save("output.png")
     
     # From bytes
     with open("input.jpg", "rb") as f:
-        result = client.remove(f.read())
+        result = client.remove_background(f.read())
         result.save("output.png")
     ```
   </Tab>
@@ -63,11 +63,10 @@ Choose your preferred method:
     import { Poof } from '@poof-bg/js';
     import fs from 'fs/promises';
     
-    const poof = new Poof({ apiKey: 'poof_your_api_key' });
+    const poof = new Poof({ apiKey: 'pk_your_api_key' });
     
-    const image = await fs.readFile('input.jpg');
-    const result = await poof.remove(image);
-    await fs.writeFile('output.png', result);
+    const result = await poof.removeBackground('input.jpg');
+    await fs.writeFile('output.png', Buffer.from(result.data));
     ```
   </Tab>
 </Tabs>
@@ -93,7 +92,7 @@ Your output file now contains the image with the background removed:
   <Card title="Check Usage" icon="chart-line" href="/api-reference/account">
     Monitor your credit usage via the API
   </Card>
-  <Card title="Handle Errors" icon="triangle-exclamation" href="/errors">
+  <Card title="Handle Errors" icon="triangle-exclamation" href="/errors/list">
     Implement robust error handling
   </Card>
   <Card title="Explore Integrations" icon="puzzle-piece" href="/integrations/overview">
@@ -115,7 +114,7 @@ curl -X POST https://api.poof.bg/v1/remove \
   -F "bg_color=#ffffff" \
   -o result.jpg
 
-# Get a small preview (faster, uses fewer credits)
+# Get a small preview (faster; every successful request costs 1 credit regardless of size)
 curl -X POST https://api.poof.bg/v1/remove \
   -H "x-api-key: YOUR_API_KEY" \
   -F "image_file=@photo.jpg" \

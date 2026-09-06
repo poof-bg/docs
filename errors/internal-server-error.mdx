@@ -1,6 +1,6 @@
 ---
 title: Internal Server Error
-description: "Server error"
+description: "Unexpected server error"
 ---
 
 **HTTP Status:** 500
@@ -8,9 +8,9 @@ description: "Server error"
 ```json
 {
   "code": "internal_server_error",
-  "message": "Internal server error",
-  "details": "Please try again later",
-  "request_id": "req_abc123"
+  "message": "An unexpected error occurred. Please try again.",
+  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+  "doc_url": "https://docs.poof.bg/errors/internal-server-error"
 }
 ```
 
@@ -18,7 +18,7 @@ description: "Server error"
 
 ### Unexpected Server Error
 
-Something went wrong on our end. This is not your fault.
+Something went wrong on our end. This is not your fault, and the request is not billed.
 
 **To fix:**
 1. Wait a moment and retry the request
@@ -29,14 +29,18 @@ Something went wrong on our end. This is not your fault.
 
 ```python
 import time
+import os
+from poof import Poof, ServerError
+
+client = Poof(api_key=os.environ["POOF_API_KEY"])
 
 def process_with_retry(image_path, max_retries=3):
     for attempt in range(max_retries):
         try:
             return client.remove_background(image_path)
-        except InternalServerError:
-            if attempt < max_retries - 1:
-                time.sleep(2 ** attempt)
+        except ServerError as e:
+            if e.code == "internal_server_error" and attempt < max_retries - 1:
+                time.sleep(2 ** attempt)  # 1s, 2s, 4s
             else:
                 raise
 ```

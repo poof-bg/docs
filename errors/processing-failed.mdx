@@ -1,0 +1,64 @@
+---
+title: Processing Failed
+description: "The model or encoder failed on this image"
+---
+
+**HTTP Status:** 500
+
+```json
+{
+  "code": "processing_failed",
+  "message": "The model could not process this image. Try a smaller image or a different format.",
+  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+  "doc_url": "https://docs.poof.bg/errors/processing-failed"
+}
+```
+
+## Reasons and How to Fix
+
+### The Image Could Not Be Processed
+
+The image was decoded successfully, but the background removal model or the output encoder failed on it. The `message` says what to try. The request is not billed.
+
+**Common causes:**
+- Very large dimensions close to the 6000 px per side / 36 MP limit
+- Unusual color modes (CMYK, 16-bit, indexed with odd palettes)
+- Extreme aspect ratios (e.g. very thin strips)
+- An output combination the encoder cannot produce for this image
+
+**To fix:**
+1. Resize the image to a smaller resolution and retry
+2. Convert it to a standard 8-bit RGB JPEG or PNG
+3. Try `format=png` with default `channels`
+4. Retry once; if it fails again with the same image, the image itself is the cause
+
+```python
+from PIL import Image
+
+img = Image.open("photo.tiff").convert("RGB")
+img.thumbnail((4096, 4096))
+img.save("photo.jpg", quality=90)
+```
+
+### Retry Strategy
+
+Unlike [`upstream_error`](/errors/upstream-error), this error is usually deterministic for a given image, so retrying the identical request rarely helps. Change the input first.
+
+```python
+import os
+from poof import Poof, ServerError
+
+client = Poof(api_key=os.environ["POOF_API_KEY"])
+
+try:
+    result = client.remove_background("photo.jpg")
+except ServerError as e:
+    if e.code == "processing_failed":
+        result = client.remove_background("photo-resized.jpg")  # smaller/re-encoded copy
+    else:
+        raise
+```
+
+## Need Help?
+
+If the problem persists, contact us at [support@poof.bg](mailto:support@poof.bg) with your `request_id` and the image (if possible) so we can investigate.

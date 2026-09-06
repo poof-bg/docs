@@ -52,10 +52,14 @@ The Poof node is a verified n8n node — it's available directly in the node pic
 | **Binary Property** | `data` | Name of the binary property (for Binary input) |
 | **Image URL** | URL | Direct link to image (for URL input) |
 | **Output Format** | PNG, JPG, WebP | Result format |
-| **Size** | Full, Preview, Small, Medium, Large | Output dimensions |
-| **Channels** | RGBA, RGB | Include transparency or not |
+| **Size** | Full, Preview, Medium, HD | Output dimensions |
+| **Channels** | RGBA, RGB, Alpha | Transparent, opaque, or grayscale alpha mask only |
 | **Background Color** | Hex color | Fill color when RGB |
 | **Crop to Subject** | Boolean | Remove empty space |
+
+<Note>
+If your installed version of the node shows different labels, refer to the API values in the [Remove Background reference](/api-reference/remove-background): `size` is `full`, `preview`, `medium` or `hd`; `channels` is `rgba`, `rgb` or `alpha`.
+</Note>
 
 ## Example Workflows
 
@@ -145,15 +149,17 @@ Poof ──┬── (success) → Continue
 Common errors:
 - `401` — Check your API credentials
 - `402` — Out of credits
-- `429` — Rate limited, add a Wait node
+- `429` — Rate limited (per-minute limit for your plan), add a Wait node
 
 ## Rate Limiting
 
-If processing many images, add delays to avoid rate limits:
+Each plan has a requests-per-minute limit (Free 4, Basic 8, Pro 12, Mega 40, Ultra 100, Giga 200). Keep the batch size at or below your plan's limit and wait 60 seconds between batches. For example, on the Free plan:
 
 ```
-Split In Batches (batch size: 5) → Poof → Wait (1 second)
+Split In Batches (batch size: 4) → Poof → Wait (60 seconds)
 ```
+
+See [Rate Limit Exceeded](/errors/rate-limit-exceeded) for the full table.
 
 ## Check Account Balance
 
@@ -167,7 +173,7 @@ Poof (Get Account) → IF (credits > 100) → Process Images
 ## Tips
 
 <Tip>
-**Use Preview size for testing** — It's faster and uses fewer credits while you're building your workflow.
+**Use Preview size for testing** — It's faster while you're building your workflow. Every successful request costs 1 credit regardless of size.
 </Tip>
 
 <Tip>
@@ -175,7 +181,7 @@ Poof (Get Account) → IF (credits > 100) → Process Images
 </Tip>
 
 <Tip>
-**Batch your operations** — Process images in groups of 5-10 with delays to avoid rate limits.
+**Batch your operations** — Process images in groups no larger than your plan's per-minute limit, with a 60-second wait between groups, to avoid rate limits.
 </Tip>
 
 ## Links

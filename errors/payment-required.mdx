@@ -1,6 +1,6 @@
 ---
 title: Payment Required
-description: "Insufficient credits or plan upgrade needed"
+description: "Monthly credits are used up"
 ---
 
 **HTTP Status:** 402
@@ -8,48 +8,44 @@ description: "Insufficient credits or plan upgrade needed"
 ```json
 {
   "code": "payment_required",
-  "message": "Insufficient credits",
-  "details": "Upgrade your plan or wait for the next billing cycle",
-  "request_id": "req_abc123"
+  "message": "Your plan's monthly credits are used up. Top up, enable Auto Recharge, upgrade, or wait for the cycle reset.",
+  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+  "doc_url": "https://docs.poof.bg/errors/payment-required"
 }
 ```
 
 ## Reasons and How to Fix
 
-### Out of Credits
+### Monthly Credits Used Up
 
-You've used all your available credits for the current billing period.
+You've used all of your plan's credits for the current billing cycle. Every successful request costs 1 credit; failed requests (including this one) are not billed.
 
-**To fix:**
-1. Log into [dash.poof.bg](https://dash.poof.bg)
-2. Check your current usage under Account
-3. Either:
-   - Upgrade to a higher plan
-   - Purchase additional credits
-   - Wait for your credits to reset (monthly plans)
-
-### Plan Limit Reached
-
-Your current plan has a processing limit that you've exceeded.
-
-**To fix:**
-- Upgrade to a plan with higher limits at [dash.poof.bg](https://dash.poof.bg)
-
-### Free Trial Expired
-
-If you were on a free trial, it may have ended.
-
-**To fix:**
-- Subscribe to a paid plan to continue using the API
+**To fix, do one of the following:**
+1. **Top up** — buy extra credits at [dash.poof.bg](https://dash.poof.bg) (available on Pro and above). Top-up credits are valid until the end of the current cycle.
+2. **Enable Auto Recharge** — in **Billing** settings, turn on Auto Recharge so a top-up is bought automatically when you reach a chosen fraction of your plan limit.
+3. **Upgrade** — move to a plan with a larger monthly allocation.
+4. **Wait for the cycle reset** — your monthly credits are restored at the start of the next billing cycle. Unused credits do not roll over.
 
 ## Check Your Usage
 
-Use the `/me` endpoint to check your current credit balance:
+Use the `/me` endpoint to compare `usedCredits` with `maxCredits`. This endpoint is free and not rate limited:
 
 ```bash
-curl https://api.poof.bg/v1/me -H "x-api-key: YOUR_API_KEY"
+curl https://api.poof.bg/v1/me -H "x-api-key: pk_your_api_key"
 ```
+
+```json
+{
+  "organizationId": "org_abc123",
+  "plan": "Pro",
+  "maxCredits": 2000,
+  "usedCredits": 2000,
+  "autoRechargeThreshold": 0.9
+}
+```
+
+See [Get Account Info](/api-reference/account) for the full response.
 
 ## Need Help?
 
-Contact us at [support@poof.bg](mailto:support@poof.bg) for billing questions.
+Contact us at [support@poof.bg](mailto:support@poof.bg) with your `request_id` for billing questions.

@@ -8,9 +8,9 @@ description: "No image file in request"
 ```json
 {
   "code": "missing_image",
-  "message": "The request did not contain an image file",
-  "details": "Ensure you are sending multipart/form-data with field 'image_file'",
-  "request_id": "req_abc123"
+  "message": "No image_file part found. Send multipart/form-data with an 'image_file' field.",
+  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+  "doc_url": "https://docs.poof.bg/errors/missing-image"
 }
 ```
 
@@ -23,11 +23,11 @@ The `/remove` endpoint requires an image file in the `image_file` field.
 ```bash
 # ❌ Wrong - no image
 curl -X POST https://api.poof.bg/v1/remove \
-  -H "x-api-key: KEY"
+  -H "x-api-key: pk_your_api_key"
 
 # ✅ Correct
 curl -X POST https://api.poof.bg/v1/remove \
-  -H "x-api-key: KEY" \
+  -H "x-api-key: pk_your_api_key" \
   -F "image_file=@photo.jpg"
 ```
 
@@ -43,7 +43,7 @@ curl -X POST https://api.poof.bg/v1/remove \
 
 # ✅ Correct - multipart/form-data
 curl -X POST https://api.poof.bg/v1/remove \
-  -H "x-api-key: KEY" \
+  -H "x-api-key: pk_your_api_key" \
   -F "image_file=@photo.jpg"
 ```
 
@@ -64,18 +64,18 @@ The field must be named exactly `image_file`.
 
 <CodeGroup>
 ```python Python
-from poofbg import Poof
+from poof import Poof
 
-client = Poof(api_key="YOUR_KEY")
-result = client.remove("photo.jpg")  # File path
-result = client.remove(image_bytes)  # Bytes
+client = Poof(api_key="pk_your_api_key")
+result = client.remove_background("photo.jpg")  # File path
+result = client.remove_background(image_bytes)  # Bytes
 ```
 
 ```typescript TypeScript
 import { Poof } from '@poof-bg/js';
 
-const client = new Poof({ apiKey: 'YOUR_KEY' });
-const result = await client.removeBackground(file);  // File or Blob
+const client = new Poof({ apiKey: 'pk_your_api_key' });
+const result = await client.removeBackground(file);  // File, Blob, Buffer or path
 ```
 </CodeGroup>
 

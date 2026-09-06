@@ -1,16 +1,16 @@
 ---
 title: Upstream Error
-description: "Processing service failed"
+description: "Processing service unreachable, unavailable, or timed out"
 ---
 
-**HTTP Status:** 502
+**HTTP Status:** 502, 503 or 504
 
 ```json
 {
   "code": "upstream_error",
-  "message": "Upstream processing failed",
-  "details": "Retry with the same Idempotency-Key",
-  "request_id": "req_abc123"
+  "message": "The processing service is temporarily unavailable. Retry with exponential backoff.",
+  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+  "doc_url": "https://docs.poof.bg/errors/upstream-error"
 }
 ```
 
@@ -18,7 +18,15 @@ description: "Processing service failed"
 
 ### Temporary Processing Failure
 
-Our image processing service encountered a temporary issue.
+The API gateway could not get a result from the image processing service. The status tells you why:
+
+| Status | Meaning |
+|--------|---------|
+| 502 | Processing service unreachable |
+| 503 | Processing service temporarily unavailable |
+| 504 | Processing service timed out |
+
+All three are transient and safe to retry. The failed request is not billed.
 
 **To fix:**
 1. Wait a few seconds and retry the request
@@ -29,29 +37,30 @@ Our image processing service encountered a temporary issue.
 
 ```python
 import time
+import os
+from poof import Poof, ServerError
+
+client = Poof(api_key=os.environ["POOF_API_KEY"])
 
 def process_with_retry(image_path, max_retries=3):
     for attempt in range(max_retries):
         try:
             return client.remove_background(image_path)
-        except UpstreamError:
-            if attempt < max_retries - 1:
+        except ServerError as e:
+            if e.code == "upstream_error" and attempt < max_retries - 1:
                 time.sleep(2 ** attempt)  # 1s, 2s, 4s
             else:
                 raise
 ```
 
-### Image Processing Issues
+### Persistent Failures on One Image
 
-Some images may be difficult to process:
-- Corrupted image files
-- Unusual image formats
-- Very complex scenes
+If only a specific image keeps failing, the problem is usually the image itself, and you will typically see [`invalid_image`](/errors/invalid-image) or [`processing_failed`](/errors/processing-failed) instead.
 
 **To fix:**
 - Verify the image opens correctly in an image viewer
-- Try converting to a standard JPEG or PNG format
-- Simplify the image if possible
+- Try converting to a standard JPEG or PNG
+- Try a smaller version of the image
 
 ## Service Status
 

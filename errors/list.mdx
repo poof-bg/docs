@@ -9,27 +9,51 @@ Below is a comprehensive list of all possible error codes you might encounter wh
 
 | Error Code | Description | HTTP Status |
 |------------|-------------|-------------|
-| [authentication_error](/errors/authentication-error) | Invalid or missing API key | 401 |
-| [permission_denied](/errors/permission-denied) | Access to this resource is forbidden | 403 |
-| [payment_required](/errors/payment-required) | Insufficient credits or plan upgrade needed | 402 |
-| [rate_limit_exceeded](/errors/rate-limit-exceeded) | Too many requests | 429 |
-| [validation_error](/errors/validation-error) | Invalid request parameters | 400 |
-| [missing_image](/errors/missing-image) | No image file in request | 400 |
-| [image_too_large](/errors/image-too-large) | Image exceeds size limit | 400 |
-| [upstream_error](/errors/upstream-error) | Processing service failed | 502 |
-| [internal_server_error](/errors/internal-server-error) | Server error | 500 |
+| [authentication_error](/errors/authentication-error) | `x-api-key` header missing or not recognised | 401 |
+| [permission_denied](/errors/permission-denied) | The endpoint or feature is not included in your current plan, or the key is not permitted | 403 |
+| [payment_required](/errors/payment-required) | Your plan's monthly credits are used up | 402 |
+| [rate_limit_exceeded](/errors/rate-limit-exceeded) | Per-plan requests-per-minute limit or the global per-IP limit hit | 429 |
+| [validation_error](/errors/validation-error) | Bad parameter value or non-multipart body | 400 |
+| [missing_image](/errors/missing-image) | No `image_file` part in the request | 400 |
+| [image_too_large](/errors/image-too-large) | Image exceeds 20 MB | 400 (413 when rejected by the processing service) |
+| [invalid_image](/errors/invalid-image) | File could not be decoded as PNG, JPEG or WebP | 422 |
+| [processing_failed](/errors/processing-failed) | The model or encoder failed on this image | 500 |
+| [upstream_error](/errors/upstream-error) | Processing service unreachable, temporarily unavailable, or timed out | 502 / 503 / 504 |
+| [internal_server_error](/errors/internal-server-error) | Unexpected server error | 500 |
+| `not_found` | Unknown path | 404 |
+
+<Note>
+`image_too_large` is normally returned as `400` by the API gateway. If an oversized upload reaches the processing service, it is rejected there with `413`. Handle both statuses the same way.
+
+`upstream_error` uses `502` (unreachable), `503` (temporarily unavailable) or `504` (timed out). All three are safe to retry with backoff.
+</Note>
 
 ## Error Response Format
 
-All errors follow a consistent JSON response format:
+All errors return a flat JSON body:
 
 ```json
 {
-  "code": "error_code",
-  "message": "Human-readable description",
-  "details": "Additional context or troubleshooting steps",
-  "request_id": "req_abc123xyz"
+  "code": "validation_error",
+  "message": "Invalid value for 'format': expected one of png, jpg, webp.",
+  "details": {
+    "format": [
+      "must be one of: png, jpg, webp"
+    ]
+  },
+  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+  "doc_url": "https://docs.poof.bg/errors/validation-error"
 }
 ```
 
-The `request_id` is useful for support — include it when contacting us about an issue.
+| Field | Description |
+|-------|-------------|
+| `code` | Machine-readable error code from the table above |
+| `message` | Human-readable description |
+| `request_id` | Unique request ID (also sent as the `X-Request-ID` response header) |
+| `doc_url` | Link to the documentation page for this error |
+| `details` | Optional. For `validation_error` an object mapping field names to messages; otherwise a string or omitted |
+
+Every error response also carries an `X-Request-ID` header equal to `request_id`. Failed requests are never billed.
+
+The `request_id` is useful for support — include it when contacting [support@poof.bg](mailto:support@poof.bg) about an issue.
