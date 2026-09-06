@@ -123,6 +123,13 @@ result = client.remove_background("photo.jpg", crop="1:1")
 # Grayscale alpha mask only
 result = client.remove_background("photo.jpg", channels="alpha")
 
+# Consistent product shots: crop, then pad 10% horizontally and 7.5% vertically
+result = client.remove_background(
+    "product.jpg",
+    crop=True,
+    padding="10%,7.5%",
+)
+
 # WebP for web
 result = client.remove_background(
     "photo.jpg",
@@ -138,10 +145,13 @@ result = client.remove_background(
 | `bg_color` | Hex, `rgb()`, or CSS color name |
 | `size` | `full` (default), `preview`, `medium`, `hd` |
 | `crop` | `True`, `False`, or an aspect ratio string like `"1:1"` |
+| `padding` | Padding around the subject when `crop` is set: `"10%"` or `"0.1"` for both axes, or `"10%,7.5%"` for `horizontal,vertical` (default `10%`) |
 
 <Note>
-The type hints in `poofbg` 0.1.0 lag behind the API: they still list old `size` values and omit `alpha` for `channels`. Values are passed through to the API unchanged, so use the values above and ignore the hint. `padding`, `width`, `height` and `fit` are not exposed by the SDK yet; call the [REST API](/api-reference/remove-background) directly if you need them.
+`channels="alpha"`, `padding`, aspect-ratio `crop` and the matte metadata fields are on the SDK's main branch and ship in the next release. The currently published `poofbg` 0.1.0 passes `size` and `channels` through unchanged but does not expose `padding` or the matte fields.
 </Note>
+
+`width`, `height` and `fit` are not exposed by the SDK; call the [REST API](/api-reference/remove-background) directly if you need them.
 
 Every successful call costs 1 credit regardless of options. Failed calls are not billed.
 
@@ -163,6 +173,22 @@ result.save("output.png")
 print(f"Processing time: {result.processing_time_ms}ms")
 print(f"Dimensions: {result.width}x{result.height}")
 print(f"Request ID: {result.request_id}")
+
+# Matte quality (None if the headers are absent)
+print(f"Matte confidence: {result.matte_confidence}")
+print(f"Ambiguous ratio: {result.matte_ambiguous_ratio}")
+```
+
+### Flagging Results for Review
+
+`matte_confidence` (0–1) is how decisive the alpha mask is; `matte_ambiguous_ratio` (0–1) is the fraction of pixels with alpha between 0.1 and 0.9. Both are heuristics, not calibrated probabilities. The dashboard playground flags a result for review when the ambiguous ratio is above 0.15:
+
+```python
+result = client.remove_background("photo.jpg")
+result.save("result.png")
+
+if result.matte_ambiguous_ratio is not None and result.matte_ambiguous_ratio > 0.15:
+    print(f"Review {result.request_id}: {result.matte_ambiguous_ratio:.0%} of pixels are uncertain")
 ```
 
 ## Account Info

@@ -127,6 +127,12 @@ const result = await poof.removeBackground(image, { crop: '1:1' });
 // Grayscale alpha mask only
 const result = await poof.removeBackground(image, { channels: 'alpha' });
 
+// Consistent product shots: crop, then pad 10% horizontally and 7.5% vertically
+const result = await poof.removeBackground(image, {
+  crop: true,
+  padding: '10%,7.5%',
+});
+
 // WebP for web
 const result = await poof.removeBackground(image, {
   format: 'webp',
@@ -141,10 +147,13 @@ const result = await poof.removeBackground(image, {
 | `bgColor` | Hex, `rgb()`, or CSS color name |
 | `size` | `'full'` (default), `'preview'`, `'medium'`, `'hd'` |
 | `crop` | `true`, `false`, or an aspect ratio string like `'1:1'` |
+| `padding` | Padding around the subject when `crop` is set: `'10%'` or `'0.1'` for both axes, or `'10%,7.5%'` for `horizontal,vertical` (default `10%`) |
 
 <Note>
-The `ImageSize` and `Channels` types in `@poof-bg/js` 1.0.0 lag behind the API: they still list old `size` values and omit `'alpha'`. Values are passed through to the API unchanged, so use the values above (cast if TypeScript complains). `padding`, `width`, `height` and `fit` are not exposed by the SDK yet; call the [REST API](/api-reference/remove-background) directly if you need them.
+`channels: 'alpha'`, `padding`, aspect-ratio `crop` and the matte metadata fields are on the SDK's main branch and ship in the next release. The currently published `@poof-bg/js` 1.0.0 passes `size` and `channels` through unchanged but does not expose `padding` or the matte fields.
 </Note>
+
+`width`, `height` and `fit` are not exposed by the SDK; call the [REST API](/api-reference/remove-background) directly if you need them.
 
 Every successful call costs 1 credit regardless of options. Failed calls are not billed.
 
@@ -161,12 +170,28 @@ result.metadata.processingTimeMs;  // number - processing time
 result.metadata.width;             // number - output width
 result.metadata.height;            // number - output height
 result.metadata.contentType;       // string - e.g. "image/png"
+result.metadata.matteConfidence;   // number | undefined - 0-1, how decisive the mask is
+result.metadata.matteAmbiguousRatio; // number | undefined - 0-1, fraction of uncertain pixels
 
 // Node.js: write to disk
 await fs.writeFile('result.png', Buffer.from(result.data));
 
 // Browser: display it
 const url = URL.createObjectURL(new Blob([result.data], { type: result.metadata.contentType }));
+```
+
+### Flagging Results for Review
+
+`matteConfidence` (0–1) is how decisive the alpha mask is; `matteAmbiguousRatio` (0–1) is the fraction of pixels with alpha between 0.1 and 0.9. Both are heuristics, not calibrated probabilities. The dashboard playground flags a result for review when the ambiguous ratio is above 0.15:
+
+```typescript
+const result = await poof.removeBackground(image);
+await fs.writeFile('result.png', Buffer.from(result.data));
+
+const { matteAmbiguousRatio, requestId } = result.metadata;
+if (matteAmbiguousRatio !== undefined && matteAmbiguousRatio > 0.15) {
+  console.warn(`Review ${requestId}: ${(matteAmbiguousRatio * 100).toFixed(0)}% of pixels are uncertain`);
+}
 ```
 
 ## Parallel Processing

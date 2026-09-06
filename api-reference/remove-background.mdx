@@ -223,33 +223,19 @@ curl -X POST https://api.poof.bg/v1/remove \
 ```
 
 ```python Python
-# padding is not exposed by the SDK yet; call the REST API directly
-import httpx
-
-with open("product.jpg", "rb") as f:
-    r = httpx.post(
-        "https://api.poof.bg/v1/remove",
-        headers={"x-api-key": "YOUR_API_KEY"},
-        files={"image_file": f},
-        data={"crop": "true", "padding": "10%,7.5%"},
-    )
-r.raise_for_status()
-open("product-cropped.png", "wb").write(r.content)
+result = client.remove_background(
+    "product.jpg",
+    crop=True,
+    padding="10%,7.5%"
+)
+result.save("product-cropped.png")
 ```
 
 ```typescript TypeScript
-// padding is not exposed by the SDK yet; call the REST API directly
-const form = new FormData();
-form.append('image_file', new Blob([await fs.readFile('product.jpg')]), 'product.jpg');
-form.append('crop', 'true');
-form.append('padding', '10%,7.5%');
-
-const res = await fetch('https://api.poof.bg/v1/remove', {
-  method: 'POST',
-  headers: { 'x-api-key': 'YOUR_API_KEY' },
-  body: form,
+const result = await poof.removeBackground(image, {
+  crop: true,
+  padding: '10%,7.5%'
 });
-await fs.writeFile('product-cropped.png', Buffer.from(await res.arrayBuffer()));
 ```
 
 </CodeGroup>
