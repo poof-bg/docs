@@ -3,7 +3,7 @@ title: TypeScript SDK
 description: "Official TypeScript/JavaScript client for the Poof API"
 ---
 
-The official TypeScript SDK for Poof works in Node.js, Deno, and Bun with full type safety.
+The official TypeScript SDK for Poof works in Node.js, Deno, Bun and the browser, with full type definitions. It ships as both ESM and CommonJS.
 
 ## Installation
 
@@ -30,7 +30,7 @@ The official TypeScript SDK for Poof works in Node.js, Deno, and Bun with full t
   </Tab>
 </Tabs>
 
-**Requirements:** Node.js 18+ (or Deno/Bun)
+**Requirements:** Node.js 18+ (or Deno/Bun/browser)
 
 ## Quick Start
 
@@ -38,45 +38,34 @@ The official TypeScript SDK for Poof works in Node.js, Deno, and Bun with full t
 import { Poof } from '@poof-bg/js';
 import fs from 'fs/promises';
 
-const poof = new Poof({ apiKey: 'poof_your_api_key' });
+const poof = new Poof({ apiKey: 'pk_your_api_key' });
 
-const image = await fs.readFile('photo.jpg');
-const result = await poof.remove(image);
-await fs.writeFile('result.png', result);
+const result = await poof.removeBackground('photo.jpg');
+await fs.writeFile('result.png', Buffer.from(result.data));
 ```
 
 ## Authentication
 
-The SDK looks for your API key in this order:
-
-1. Passed directly: `new Poof({ apiKey: '...' })`
-2. Environment variable: `POOF_API_KEY`
+`apiKey` is required. The SDK does not read an environment variable for you, so pass it in yourself:
 
 ```typescript
 import { Poof } from '@poof-bg/js';
 
-// Option 1: Pass directly
-const poof = new Poof({ apiKey: 'poof_your_api_key' });
+// Option 1: Pass directly (not recommended for production)
+const poof = new Poof({ apiKey: 'pk_your_api_key' });
 
-// Option 2: Use environment variable (recommended)
-// POOF_API_KEY=poof_your_api_key
-const poof = new Poof();
+// Option 2: Read from the environment (recommended)
+// POOF_API_KEY=pk_your_api_key
+const poof = new Poof({ apiKey: process.env.POOF_API_KEY! });
 ```
+
+<Warning>
+Never ship your API key in browser code. Call the SDK from your server (see the framework examples below).
+</Warning>
 
 ## Usage Examples
 
-### From Buffer
-
-```typescript
-import { Poof } from '@poof-bg/js';
-import fs from 'fs/promises';
-
-const poof = new Poof();
-
-const image = await fs.readFile('photo.jpg');
-const result = await poof.remove(image);
-await fs.writeFile('result.png', result);
-```
+`removeBackground(input, options?)` accepts a `File`, `Blob`, `ArrayBuffer`, `Buffer`, `Uint8Array`, or a `string` file path (Node.js only).
 
 ### From File Path (Node.js)
 
@@ -84,44 +73,71 @@ await fs.writeFile('result.png', result);
 import { Poof } from '@poof-bg/js';
 import fs from 'fs/promises';
 
-const poof = new Poof();
-const result = await poof.removeFile('photo.jpg');
-await fs.writeFile('result.png', result);
+const poof = new Poof({ apiKey: process.env.POOF_API_KEY! });
+
+const result = await poof.removeBackground('photo.jpg');
+await fs.writeFile('result.png', Buffer.from(result.data));
+```
+
+### From Buffer
+
+```typescript
+const image = await fs.readFile('photo.jpg');
+const result = await poof.removeBackground(image);
+await fs.writeFile('result.png', Buffer.from(result.data));
+```
+
+### From File or Blob (browser / server upload)
+
+```typescript
+const file = formData.get('image') as File;
+const result = await poof.removeBackground(file);
 ```
 
 ### From URL
 
+Download the image first, then pass the bytes:
+
 ```typescript
 const response = await fetch('https://example.com/photo.jpg');
-const image = Buffer.from(await response.arrayBuffer());
+const image = await response.arrayBuffer();
 
-const result = await poof.remove(image);
+const result = await poof.removeBackground(image);
 ```
 
 ### With Options
 
 ```typescript
 // White background JPEG
-const result = await poof.remove(image, {
+const result = await poof.removeBackground(image, {
   format: 'jpg',
   channels: 'rgb',
   bgColor: '#ffffff',
 });
 
 // Small cropped thumbnail
-const result = await poof.remove(image, {
+const result = await poof.removeBackground(image, {
   size: 'preview',
   crop: true,
 });
 
+// Crop to a 1:1 aspect ratio around the subject
+const result = await poof.removeBackground(image, { crop: '1:1' });
+
 // Grayscale alpha mask only
-const result = await poof.remove(image, { channels: 'alpha' });
+const result = await poof.removeBackground(image, { channels: 'alpha' });
+
+// Consistent product shots: crop, then pad 10% horizontally and 7.5% vertically
+const result = await poof.removeBackground(image, {
+  crop: true,
+  padding: '10%,7.5%',
+});
 
 // Exact 500x500 output, never stretched: subject cropped, padded, centred
-const result = await poof.remove(image, { crop: true, width: 500, height: 500 });
+const result = await poof.removeBackground(image, { crop: true, width: 500, height: 500 });
 
 // Fill a 1080x1080 canvas on white instead (overflow cropped around the subject)
-const result = await poof.remove(image, {
+const result = await poof.removeBackground(image, {
   width: 1080,
   height: 1080,
   fit: 'cover',
@@ -130,27 +146,66 @@ const result = await poof.remove(image, {
 });
 
 // Cap the width at 1000px, keep the aspect ratio, leave smaller images alone
-const result = await poof.remove(image, { width: 1000, fit: 'scale-down' });
+const result = await poof.removeBackground(image, { width: 1000, fit: 'scale-down' });
 
 // WebP for web
-const result = await poof.remove(image, {
+const result = await poof.removeBackground(image, {
   format: 'webp',
   size: 'medium',
 });
 ```
 
-## Response Metadata
+| Option | Values |
+|--------|--------|
+| `format` | `'png'` (default), `'jpg'`, `'webp'` |
+| `channels` | `'rgba'` (default), `'rgb'`, `'alpha'` |
+| `bgColor` | Hex, `rgb()`, or CSS color name |
+| `size` | `'full'` (default), `'preview'`, `'medium'`, `'hd'` |
+| `crop` | `true`, `false`, or an aspect ratio string like `'1:1'` |
+| `padding` | Padding around the subject when `crop` is set: `'10%'` or `'0.1'` for both axes, or `'10%,7.5%'` for `horizontal,vertical` (default `10%`) |
 
-Access processing metadata from the response:
+<Note>
+`channels: 'alpha'`, `padding`, aspect-ratio `crop`, the matte metadata fields and the `width` / `height` / `fit` output-size options are on the SDK's main branch and ship in the next release (`@poof-bg/js` 1.1.0). The currently published 1.0.0 passes `size` and `channels` through unchanged but does not expose `padding`, the matte fields or the output-size options.
+</Note>
+
+
+Every successful call costs 1 credit regardless of options. Failed calls are not billed.
+
+## Result and Metadata
+
+`removeBackground()` resolves to a `RemoveBackgroundResult`:
 
 ```typescript
-const response = await poof.removeWithMetadata(image);
+const result = await poof.removeBackground(image);
 
-console.log(response.data);           // Buffer - the processed image
-console.log(response.requestId);      // string - unique request ID
-console.log(response.processingTimeMs); // number - processing time
-console.log(response.width);          // number - output width
-console.log(response.height);         // number - output height
+result.data;                       // ArrayBuffer - the processed image
+result.metadata.requestId;         // string - unique request ID
+result.metadata.processingTimeMs;  // number - processing time
+result.metadata.width;             // number - output width
+result.metadata.height;            // number - output height
+result.metadata.contentType;       // string - e.g. "image/png"
+result.metadata.matteConfidence;   // number | undefined - 0-1, how decisive the mask is
+result.metadata.matteAmbiguousRatio; // number | undefined - 0-1, fraction of uncertain pixels
+
+// Node.js: write to disk
+await fs.writeFile('result.png', Buffer.from(result.data));
+
+// Browser: display it
+const url = URL.createObjectURL(new Blob([result.data], { type: result.metadata.contentType }));
+```
+
+### Flagging Results for Review
+
+`matteConfidence` (0–1) is how decisive the alpha mask is; `matteAmbiguousRatio` (0–1) is the fraction of pixels with alpha between 0.1 and 0.9. Both are heuristics, not calibrated probabilities. The dashboard playground flags a result for review when the ambiguous ratio is above 0.15:
+
+```typescript
+const result = await poof.removeBackground(image);
+await fs.writeFile('result.png', Buffer.from(result.data));
+
+const { matteAmbiguousRatio, requestId } = result.metadata;
+if (matteAmbiguousRatio !== undefined && matteAmbiguousRatio > 0.15) {
+  console.warn(`Review ${requestId}: ${(matteAmbiguousRatio * 100).toFixed(0)}% of pixels are uncertain`);
+}
 ```
 
 ## Parallel Processing
@@ -158,56 +213,84 @@ console.log(response.height);         // number - output height
 ```typescript
 import { Poof } from '@poof-bg/js';
 import fs from 'fs/promises';
-import path from 'path';
 
-const poof = new Poof();
+const poof = new Poof({ apiKey: process.env.POOF_API_KEY! });
 
 async function processImages(imagePaths: string[]) {
-  const results = await Promise.all(
+  return Promise.all(
     imagePaths.map(async (imagePath) => {
-      const image = await fs.readFile(imagePath);
-      const result = await poof.remove(image);
+      const result = await poof.removeBackground(imagePath);
       const outputPath = imagePath.replace(/\.[^.]+$/, '_no_bg.png');
-      await fs.writeFile(outputPath, result);
+      await fs.writeFile(outputPath, Buffer.from(result.data));
       return outputPath;
     })
   );
-  return results;
 }
 
+// Keep concurrency at or below your plan's per-minute limit (see Rate Limit Exceeded)
 await processImages(['photo1.jpg', 'photo2.jpg', 'photo3.jpg']);
 ```
 
 ## Account Info
 
-Check your credit balance:
+`me()` returns the [`/me`](/api-reference/account) response. It is free and not rate limited.
 
 ```typescript
-const account = await poof.getAccount();
+const account = await poof.me();
 
 console.log(`Plan: ${account.plan}`);
 console.log(`Credits used: ${account.usedCredits}/${account.maxCredits}`);
 console.log(`Remaining: ${account.maxCredits - account.usedCredits}`);
+
+// Present only when Auto Recharge is on (fraction of the plan limit, e.g. 0.9)
+account.autoRechargeThreshold;
 ```
 
 ## Error Handling
 
-```typescript
-import { Poof, PoofError, AuthenticationError, PaymentRequiredError, RateLimitError } from '@poof-bg/js';
+All errors extend `PoofError`, which exposes `.code`, `.status`, `.requestId`, `.details` and `.message`. Subclasses are chosen by the API error code:
 
-const poof = new Poof();
+| Class | Error codes |
+|-------|-------------|
+| `AuthenticationError` | `authentication_error` (401) |
+| `PermissionError` | `permission_denied` (403) |
+| `PaymentRequiredError` | `payment_required` (402) |
+| `RateLimitError` | `rate_limit_exceeded` (429) |
+| `ValidationError` | `validation_error`, `missing_image`, `image_too_large` (400/413) |
+| `ServerError` | `upstream_error`, `internal_server_error` (500/502/503/504) |
+| `PoofError` | anything else (e.g. `invalid_image`, `processing_failed`) |
+
+```typescript
+import {
+  Poof,
+  PoofError,
+  AuthenticationError,
+  PermissionError,
+  PaymentRequiredError,
+  RateLimitError,
+  ValidationError,
+  ServerError,
+} from '@poof-bg/js';
+
+const poof = new Poof({ apiKey: process.env.POOF_API_KEY! });
 
 try {
-  const result = await poof.remove(image);
+  const result = await poof.removeBackground(image);
 } catch (error) {
   if (error instanceof AuthenticationError) {
     console.error('Check your API key');
   } else if (error instanceof PaymentRequiredError) {
-    console.error('Out of credits — upgrade your plan');
+    console.error('Monthly credits used up — top up, enable Auto Recharge, or upgrade');
+  } else if (error instanceof PermissionError) {
+    console.error('This feature is not included in your plan');
   } else if (error instanceof RateLimitError) {
     console.error(`Rate limited. Request ID: ${error.requestId}`);
+  } else if (error instanceof ValidationError) {
+    console.error(`Invalid request: ${error.message}`, error.details);
+  } else if (error instanceof ServerError) {
+    console.error(`Server error ${error.status} (${error.code}): retry later`);
   } else if (error instanceof PoofError) {
-    console.error(`API error: ${error.message} (${error.requestId})`);
+    console.error(`API error ${error.status} ${error.code}: ${error.message} (${error.requestId})`);
   } else {
     throw error;
   }
@@ -217,18 +300,20 @@ try {
 ### Retry with Backoff
 
 ```typescript
+import { Poof, RateLimitError, ServerError, type ImageInput, type RemoveBackgroundResult } from '@poof-bg/js';
+
 async function removeWithRetry(
   poof: Poof,
-  image: Buffer,
+  image: ImageInput,
   maxRetries = 3
-): Promise<Buffer> {
+): Promise<RemoveBackgroundResult> {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      return await poof.remove(image);
+      return await poof.removeBackground(image);
     } catch (error) {
-      if (error instanceof RateLimitError && attempt < maxRetries - 1) {
-        const delay = Math.pow(2, attempt) * 1000;
-        await new Promise((r) => setTimeout(r, delay));
+      const retryable = error instanceof RateLimitError || error instanceof ServerError;
+      if (retryable && attempt < maxRetries - 1) {
+        await new Promise((r) => setTimeout(r, Math.pow(2, attempt) * 1000)); // 1s, 2s, 4s
         continue;
       }
       throw error;
@@ -242,9 +327,9 @@ async function removeWithRetry(
 
 ```typescript
 const poof = new Poof({
-  apiKey: 'poof_your_api_key',
+  apiKey: 'pk_your_api_key',
   baseUrl: 'https://api.poof.bg/v1', // Default
-  timeout: 30000, // Request timeout in ms
+  timeout: 60000, // Request timeout in ms
 });
 ```
 
@@ -253,16 +338,21 @@ const poof = new Poof({
 Full type definitions are included:
 
 ```typescript
-import type { 
-  Poof,
-  RemoveOptions,
+import type {
+  PoofOptions,
+  RemoveBackgroundOptions,
+  RemoveBackgroundResult,
+  ProcessingMetadata,
   AccountInfo,
-  Format,
-  Size,
+  ImageFormat,
   Channels,
+  ImageSize,
+  ImageInput,
+  ErrorCode,
+  ApiErrorResponse,
 } from '@poof-bg/js';
 
-const options: RemoveOptions = {
+const options: RemoveBackgroundOptions = {
   format: 'png',
   size: 'full',
   crop: false,
@@ -276,11 +366,11 @@ const options: RemoveOptions = {
 ```typescript
 import express from 'express';
 import multer from 'multer';
-import { Poof } from '@poof-bg/js';
+import { Poof, PoofError } from '@poof-bg/js';
 
 const app = express();
 const upload = multer();
-const poof = new Poof();
+const poof = new Poof({ apiKey: process.env.POOF_API_KEY! });
 
 app.post('/remove-background', upload.single('image'), async (req, res) => {
   if (!req.file) {
@@ -288,11 +378,12 @@ app.post('/remove-background', upload.single('image'), async (req, res) => {
   }
 
   try {
-    const result = await poof.remove(req.file.buffer);
-    res.set('Content-Type', 'image/png');
-    res.send(result);
+    const result = await poof.removeBackground(req.file.buffer);
+    res.set('Content-Type', result.metadata.contentType);
+    res.send(Buffer.from(result.data));
   } catch (error) {
-    res.status(500).json({ error: 'Processing failed' });
+    const status = error instanceof PoofError ? error.status : 500;
+    res.status(status).json({ error: 'Processing failed' });
   }
 });
 
@@ -306,21 +397,20 @@ app.listen(3000);
 import { Poof } from '@poof-bg/js';
 import { NextRequest, NextResponse } from 'next/server';
 
-const poof = new Poof();
+const poof = new Poof({ apiKey: process.env.POOF_API_KEY! });
 
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
-  const file = formData.get('image') as File;
-  
+  const file = formData.get('image') as File | null;
+
   if (!file) {
     return NextResponse.json({ error: 'No image' }, { status: 400 });
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const result = await poof.remove(buffer);
-  
-  return new NextResponse(result, {
-    headers: { 'Content-Type': 'image/png' },
+  const result = await poof.removeBackground(file);
+
+  return new NextResponse(result.data, {
+    headers: { 'Content-Type': result.metadata.contentType },
   });
 }
 ```

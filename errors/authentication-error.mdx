@@ -8,9 +8,9 @@ description: "Invalid or missing API key"
 ```json
 {
   "code": "authentication_error",
-  "message": "Invalid or missing API key",
-  "details": "Check your 'x-api-key' header",
-  "request_id": "req_abc123"
+  "message": "API key missing or not recognised. Send it in the 'x-api-key' header.",
+  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+  "doc_url": "https://docs.poof.bg/errors/authentication-error"
 }
 ```
 
@@ -26,13 +26,13 @@ curl -X POST https://api.poof.bg/v1/remove -F "image_file=@photo.jpg"
 
 # ✅ Correct
 curl -X POST https://api.poof.bg/v1/remove \
-  -H "x-api-key: YOUR_API_KEY" \
+  -H "x-api-key: pk_your_api_key" \
   -F "image_file=@photo.jpg"
 ```
 
 ### Invalid API Key
 
-Your API key may be incorrect or malformed. API keys start with `pk_` for production keys.
+Your API key may be incorrect or malformed. API keys start with `pk_`.
 
 **To fix:**
 1. Go to [dash.poof.bg](https://dash.poof.bg) and copy your API key

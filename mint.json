@@ -76,6 +76,8 @@
             "errors/validation-error",
             "errors/missing-image",
             "errors/image-too-large",
+            "errors/invalid-image",
+            "errors/processing-failed",
             "errors/upstream-error",
             "errors/internal-server-error"
           ]

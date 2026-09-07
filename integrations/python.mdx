@@ -3,7 +3,7 @@ title: Python SDK
 description: "Official Python client for the Poof API"
 ---
 
-The official Python SDK for Poof provides a clean, Pythonic interface with full type hints and both sync and async support.
+The official Python SDK for Poof provides a small, typed, synchronous client built on `httpx`.
 
 ## Installation
 
@@ -11,38 +11,47 @@ The official Python SDK for Poof provides a clean, Pythonic interface with full 
 pip install poofbg
 ```
 
-**Requirements:** Python 3.8+
+**Requirements:** Python 3.9+
+
+<Note>
+The package on PyPI is `poofbg`, but the import name is `poof`.
+</Note>
 
 ## Quick Start
 
 ```python
-from poofbg import Poof
+from poof import Poof
 
 # Initialize the client
-client = Poof(api_key="poof_your_api_key")
+client = Poof(api_key="pk_your_api_key")
 
 # Remove background from a file
-result = client.remove("photo.jpg")
+result = client.remove_background("photo.jpg")
 result.save("result.png")
 ```
 
 ## Authentication
 
-The SDK looks for your API key in this order:
-
-1. Passed directly: `Poof(api_key="...")`
-2. Environment variable: `POOF_API_KEY`
+`api_key` is required. The SDK does not read an environment variable for you, so load it yourself:
 
 ```python
 import os
-from poofbg import Poof
+from poof import Poof
 
 # Option 1: Pass directly (not recommended for production)
-client = Poof(api_key="poof_your_api_key")
+client = Poof(api_key="pk_your_api_key")
 
-# Option 2: Use environment variable (recommended)
-# export POOF_API_KEY=poof_your_api_key
-client = Poof()  # Reads from POOF_API_KEY
+# Option 2: Read from the environment (recommended)
+# export POOF_API_KEY=pk_your_api_key
+client = Poof(api_key=os.environ["POOF_API_KEY"])
+```
+
+The client holds an HTTP connection pool. Use it as a context manager, or call `client.close()` when you are done:
+
+```python
+with Poof(api_key=os.environ["POOF_API_KEY"]) as client:
+    result = client.remove_background("photo.jpg")
+    result.save("result.png")
 ```
 
 ## Usage Examples
@@ -50,9 +59,11 @@ client = Poof()  # Reads from POOF_API_KEY
 ### From File Path
 
 ```python
-result = client.remove("photo.jpg")
+result = client.remove_background("photo.jpg")
 result.save("result.png")
 ```
+
+`pathlib.Path` objects work too.
 
 ### From Bytes
 
@@ -60,24 +71,31 @@ result.save("result.png")
 with open("photo.jpg", "rb") as f:
     image_bytes = f.read()
 
-result = client.remove(image_bytes)
+result = client.remove_background(image_bytes)
 
 # Access the result as bytes
-png_bytes = result.data
+png_bytes = result.data      # or bytes(result)
 
 # Or save directly
 result.save("result.png")
 ```
 
-### From URL
+### From a File-like Object
 
 ```python
-import requests
+with open("photo.jpg", "rb") as f:
+    result = client.remove_background(f)
+```
 
-image_url = "https://example.com/photo.jpg"
-response = requests.get(image_url)
+### From URL
 
-result = client.remove(response.content)
+Download the image first, then pass the bytes:
+
+```python
+import httpx
+
+response = httpx.get("https://example.com/photo.jpg")
+result = client.remove_background(response.content)
 result.save("result.png")
 ```
 
@@ -85,28 +103,38 @@ result.save("result.png")
 
 ```python
 # White background JPEG
-result = client.remove(
+result = client.remove_background(
     "photo.jpg",
     format="jpg",
     channels="rgb",
-    bg_color="#ffffff"
+    bg_color="#ffffff",
 )
 
 # Small cropped thumbnail
-result = client.remove(
+result = client.remove_background(
     "photo.jpg",
     size="preview",
-    crop=True
+    crop=True,
 )
 
+# Crop to a 1:1 aspect ratio around the subject
+result = client.remove_background("photo.jpg", crop="1:1")
+
 # Grayscale alpha mask only
-result = client.remove("photo.jpg", channels="alpha")
+result = client.remove_background("photo.jpg", channels="alpha")
+
+# Consistent product shots: crop, then pad 10% horizontally and 7.5% vertically
+result = client.remove_background(
+    "product.jpg",
+    crop=True,
+    padding="10%,7.5%",
+)
 
 # Exact 500x500 output, never stretched: subject cropped, padded, centred
-result = client.remove("photo.jpg", crop=True, width=500, height=500)
+result = client.remove_background("photo.jpg", crop=True, width=500, height=500)
 
 # Fill a 1080x1080 canvas on white instead (overflow cropped around the subject)
-result = client.remove(
+result = client.remove_background(
     "photo.jpg",
     width=1080,
     height=1080,
@@ -116,59 +144,42 @@ result = client.remove(
 )
 
 # Cap the width at 1000px, keep the aspect ratio, leave smaller images alone
-result = client.remove("photo.jpg", width=1000, fit="scale-down")
+result = client.remove_background("photo.jpg", width=1000, fit="scale-down")
 
 # WebP for web
-result = client.remove(
+result = client.remove_background(
     "photo.jpg",
     format="webp",
-    size="medium"
+    size="medium",
 )
 ```
 
-## Async Support
+| Option | Values |
+|--------|--------|
+| `format` | `png` (default), `jpg`, `webp` |
+| `channels` | `rgba` (default), `rgb`, `alpha` |
+| `bg_color` | Hex, `rgb()`, or CSS color name |
+| `size` | `full` (default), `preview`, `medium`, `hd` |
+| `crop` | `True`, `False`, or an aspect ratio string like `"1:1"` |
+| `padding` | Padding around the subject when `crop` is set: `"10%"` or `"0.1"` for both axes, or `"10%,7.5%"` for `horizontal,vertical` (default `10%`) |
 
-For async applications, use `AsyncPoof`:
+<Note>
+`channels="alpha"`, `padding`, aspect-ratio `crop`, the matte metadata fields and the `width` / `height` / `fit` output-size options are on the SDK's main branch and ship in the next release (`poofbg` 0.2.0). The currently published 0.1.0 passes `size` and `channels` through unchanged but does not expose `padding`, the matte fields or the output-size options.
+</Note>
 
-```python
-import asyncio
-from poofbg import AsyncPoof
 
-async def main():
-    async with AsyncPoof() as client:
-        result = await client.remove("photo.jpg")
-        result.save("result.png")
-
-asyncio.run(main())
-```
-
-### Parallel Processing
-
-```python
-import asyncio
-from poofbg import AsyncPoof
-
-async def process_images(image_paths: list[str]):
-    async with AsyncPoof() as client:
-        tasks = [client.remove(path) for path in image_paths]
-        results = await asyncio.gather(*tasks)
-        
-        for path, result in zip(image_paths, results):
-            output_path = path.replace(".jpg", "_no_bg.png")
-            result.save(output_path)
-
-asyncio.run(process_images(["photo1.jpg", "photo2.jpg", "photo3.jpg"]))
-```
+Every successful call costs 1 credit regardless of options. Failed calls are not billed.
 
 ## Result Object
 
-The `remove()` method returns a `Result` object:
+`remove_background()` returns a `RemoveBackgroundResult`:
 
 ```python
-result = client.remove("photo.jpg")
+result = client.remove_background("photo.jpg")
 
 # Raw image bytes
-image_bytes: bytes = result.data
+image_bytes: bytes = result.data   # bytes(result) also works
+print(result.content_type)         # "image/png"
 
 # Save to file
 result.save("output.png")
@@ -177,90 +188,148 @@ result.save("output.png")
 print(f"Processing time: {result.processing_time_ms}ms")
 print(f"Dimensions: {result.width}x{result.height}")
 print(f"Request ID: {result.request_id}")
+
+# Matte quality (None if the headers are absent)
+print(f"Matte confidence: {result.matte_confidence}")
+print(f"Ambiguous ratio: {result.matte_ambiguous_ratio}")
+```
+
+### Flagging Results for Review
+
+`matte_confidence` (0–1) is how decisive the alpha mask is; `matte_ambiguous_ratio` (0–1) is the fraction of pixels with alpha between 0.1 and 0.9. Both are heuristics, not calibrated probabilities. The dashboard playground flags a result for review when the ambiguous ratio is above 0.15:
+
+```python
+result = client.remove_background("photo.jpg")
+result.save("result.png")
+
+if result.matte_ambiguous_ratio is not None and result.matte_ambiguous_ratio > 0.15:
+    print(f"Review {result.request_id}: {result.matte_ambiguous_ratio:.0%} of pixels are uncertain")
 ```
 
 ## Account Info
 
-Check your credit balance:
+`client.me()` returns the [`/me`](/api-reference/account) response as a plain `dict`. It is free and not rate limited.
 
 ```python
-account = client.get_account()
+info = client.me()
 
-print(f"Plan: {account.plan}")
-print(f"Credits used: {account.used_credits}/{account.max_credits}")
-print(f"Remaining: {account.max_credits - account.used_credits}")
+print(f"Plan: {info['plan']}")
+print(f"Credits used: {info['usedCredits']}/{info['maxCredits']}")
+print(f"Remaining: {info['maxCredits'] - info['usedCredits']}")
+
+# Present only when Auto Recharge is on (fraction of the plan limit, e.g. 0.9)
+threshold = info.get("autoRechargeThreshold")
+```
+
+## Parallel Processing
+
+The client is synchronous. To process several images at once, use a thread pool:
+
+```python
+import os
+from concurrent.futures import ThreadPoolExecutor
+from poof import Poof
+
+client = Poof(api_key=os.environ["POOF_API_KEY"])
+
+def process(path: str) -> str:
+    result = client.remove_background(path)
+    out = path.replace(".jpg", "_no_bg.png")
+    result.save(out)
+    return out
+
+# Keep workers at or below your plan's per-minute limit (see Rate Limit Exceeded)
+with ThreadPoolExecutor(max_workers=4) as pool:
+    outputs = list(pool.map(process, ["photo1.jpg", "photo2.jpg", "photo3.jpg"]))
 ```
 
 ## Error Handling
 
+All exceptions inherit from `PoofError` and are chosen by HTTP status:
+
+| Exception | HTTP status |
+|-----------|-------------|
+| `AuthError` | 401 |
+| `PaymentRequiredError` | 402 |
+| `PermissionDeniedError` | 403 |
+| `RateLimitError` | 429 |
+| `ValidationError` | 400 |
+| `ServerError` | 500 and above |
+| `PoofError` | anything else (e.g. 404, 413, 422) |
+
+Every exception exposes `.message`, `.code`, `.details`, `.request_id` and `.status_code`.
+
 ```python
-from poofbg import Poof
-from poofbg.exceptions import (
+from poof import (
+    Poof,
     PoofError,
-    AuthenticationError,
+    AuthError,
     PaymentRequiredError,
+    PermissionDeniedError,
     RateLimitError,
     ValidationError,
+    ServerError,
 )
 
-client = Poof()
+client = Poof(api_key=os.environ["POOF_API_KEY"])
 
 try:
-    result = client.remove("photo.jpg")
-except AuthenticationError:
+    result = client.remove_background("photo.jpg")
+except AuthError:
     print("Check your API key")
 except PaymentRequiredError:
-    print("Out of credits — upgrade your plan")
+    print("Monthly credits used up — top up, enable Auto Recharge, or upgrade")
+except PermissionDeniedError:
+    print("This feature is not included in your plan")
 except RateLimitError as e:
     print(f"Rate limited. Retry after backoff. Request ID: {e.request_id}")
 except ValidationError as e:
-    print(f"Invalid request: {e.message}")
+    print(f"Invalid request: {e.message} {e.details}")
+except ServerError as e:
+    print(f"Server error {e.status_code} ({e.code}): retry later")
 except PoofError as e:
-    print(f"API error: {e.message} (Request ID: {e.request_id})")
+    print(f"API error {e.status_code} {e.code}: {e.message} (Request ID: {e.request_id})")
 ```
 
 ### Retry with Backoff
 
 ```python
 import time
-from poof.exceptions import RateLimitError
+from poof import RateLimitError, ServerError
 
 def remove_with_retry(client, image, max_retries=3):
     for attempt in range(max_retries):
         try:
-            return client.remove(image)
-        except RateLimitError:
+            return client.remove_background(image)
+        except (RateLimitError, ServerError):
             if attempt == max_retries - 1:
                 raise
-            wait = 2 ** attempt
-            time.sleep(wait)
+            time.sleep(2 ** attempt)  # 1s, 2s, 4s
 ```
 
 ## Configuration
 
 ```python
+import httpx
+from poof import Poof
+
 client = Poof(
-    api_key="poof_your_api_key",
+    api_key="pk_your_api_key",
     base_url="https://api.poof.bg/v1",  # Default
-    timeout=30.0,  # Request timeout in seconds
+    timeout=60.0,                        # Request timeout in seconds (default 60)
+    httpx_client=httpx.Client(),         # Optional: bring your own httpx.Client
 )
 ```
 
 ## Type Hints
 
-The SDK is fully typed. Enable strict type checking in your IDE for the best experience:
+The SDK ships type hints and a `py.typed` marker, so `mypy` and IDEs understand `Poof`, `RemoveBackgroundResult` and the exception classes:
 
 ```python
-from poofbg import Poof, Result
-from poofbg.types import Format, Size, Channels
+from poof import Poof, RemoveBackgroundResult
 
-def process_image(
-    client: Poof,
-    path: str,
-    format: Format = "png",
-    size: Size = "full",
-) -> Result:
-    return client.remove(path, format=format, size=size)
+def process_image(client: Poof, path: str) -> RemoveBackgroundResult:
+    return client.remove_background(path, format="png", size="full")
 ```
 
 ## Links

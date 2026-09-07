@@ -6,13 +6,15 @@ api: "GET /me"
 
 Get information about your account including your current plan, credit balance, and usage statistics.
 
+This endpoint is free: it does not consume credits and is not rate limited, so you can poll it as often as you like.
+
 ## Request
 
 No request body required. Just include your API key in the header.
 
 ```bash
 curl https://api.poof.bg/v1/me \
-  -H "x-api-key: YOUR_API_KEY"
+  -H "x-api-key: pk_your_api_key"
 ```
 
 ## Response
@@ -22,19 +24,19 @@ curl https://api.poof.bg/v1/me \
 </ResponseField>
 
 <ResponseField name="plan" type="string">
-  Your current subscription plan (e.g., "Free", "Pro", "Enterprise").
+  Your current plan's display name (e.g., "Free", "Basic", "Pro", "Mega", "Ultra", "Giga").
 </ResponseField>
 
 <ResponseField name="maxCredits" type="integer">
-  Total credits available in your current billing cycle.
+  Total credits available in your current billing cycle (monthly allocation plus any top-ups).
 </ResponseField>
 
 <ResponseField name="usedCredits" type="integer">
-  Credits consumed in the current billing cycle.
+  Credits consumed in the current billing cycle. Each successful `/remove` request costs 1 credit.
 </ResponseField>
 
-<ResponseField name="autoRechargeThreshold" type="integer | null">
-  If auto-recharge is enabled, the credit threshold that triggers a top-up. `null` if disabled.
+<ResponseField name="autoRechargeThreshold" type="number">
+  Fraction of the plan limit at which Auto Recharge triggers, between `0.5` and `0.95` (e.g. `0.9` = 90%). Omitted when Auto Recharge is off.
 </ResponseField>
 
 <ResponseExample>
@@ -43,9 +45,9 @@ curl https://api.poof.bg/v1/me \
 {
   "organizationId": "org_abc123xyz",
   "plan": "Pro",
-  "maxCredits": 5000,
+  "maxCredits": 2000,
   "usedCredits": 1234,
-  "autoRechargeThreshold": 100
+  "autoRechargeThreshold": 0.9
 }
 ```
 
@@ -57,24 +59,24 @@ curl https://api.poof.bg/v1/me \
 
 ```bash cURL
 curl https://api.poof.bg/v1/me \
-  -H "x-api-key: YOUR_API_KEY"
+  -H "x-api-key: pk_your_api_key"
 ```
 
 ```python Python
-from poofbg import Poof
+from poof import Poof
 
-client = Poof(api_key="YOUR_API_KEY")
-account = client.get_account()
+client = Poof(api_key="pk_your_api_key")
+info = client.me()
 
-print(f"Plan: {account.plan}")
-print(f"Credits remaining: {account.max_credits - account.used_credits}")
+print(f"Plan: {info['plan']}")
+print(f"Credits remaining: {info['maxCredits'] - info['usedCredits']}")
 ```
 
 ```typescript TypeScript
 import { Poof } from '@poof-bg/js';
 
-const poof = new Poof({ apiKey: 'YOUR_API_KEY' });
-const account = await poof.getAccount();
+const poof = new Poof({ apiKey: 'pk_your_api_key' });
+const account = await poof.me();
 
 console.log(`Plan: ${account.plan}`);
 console.log(`Credits remaining: ${account.maxCredits - account.usedCredits}`);
@@ -89,11 +91,11 @@ console.log(`Credits remaining: ${account.maxCredits - account.usedCredits}`);
 Check your credit consumption before processing a batch:
 
 ```python
-account = client.get_account()
-remaining = account.max_credits - account.used_credits
+info = client.me()
+remaining = info["maxCredits"] - info["usedCredits"]
 
 if remaining < 100:
-    print("Warning: Low credits, consider upgrading")
+    print("Warning: Low credits, consider a top-up or upgrade")
 ```
 
 ### Usage Dashboard
@@ -101,7 +103,7 @@ if remaining < 100:
 Display account info in your application:
 
 ```typescript
-const account = await poof.getAccount();
+const account = await poof.me();
 
 const usagePercent = (account.usedCredits / account.maxCredits) * 100;
 console.log(`Usage: ${usagePercent.toFixed(1)}%`);
@@ -112,16 +114,18 @@ console.log(`Usage: ${usagePercent.toFixed(1)}%`);
 Verify credentials and check limits before starting a job:
 
 ```python
+from poof import AuthError
+
 try:
-    account = client.get_account()
+    info = client.me()
     images_to_process = 500
-    remaining = account.max_credits - account.used_credits
-    
+    remaining = info["maxCredits"] - info["usedCredits"]
+
     if remaining < images_to_process:
         raise Exception(f"Not enough credits. Need {images_to_process}, have {remaining}")
-    
+
     # Proceed with processing
-except AuthenticationError:
+except AuthError:
     print("Invalid API key")
 ```
 
@@ -129,13 +133,15 @@ except AuthenticationError:
 
 | Status | Code | Description |
 |--------|------|-------------|
-| 401 | `authentication_error` | Invalid or missing API key |
+| 401 | `authentication_error` | `x-api-key` missing or not recognised |
+
+See [API Error Codes](/errors/list) for the error body format.
 
 <RequestExample>
 
 ```bash cURL
 curl https://api.poof.bg/v1/me \
-  -H "x-api-key: YOUR_API_KEY"
+  -H "x-api-key: pk_your_api_key"
 ```
 
 </RequestExample>

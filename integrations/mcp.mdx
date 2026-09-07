@@ -69,11 +69,13 @@ To use it in a conversation, click the **+** icon in the composer, select **More
 
 ```json
 {
-  "poof": {
-    "command": "npx",
-    "args": ["-y", "@poof-bg/mcp"],
-    "env": {
-      "POOF_API_KEY": "your-api-key"
+  "mcpServers": {
+    "poof": {
+      "command": "npx",
+      "args": ["-y", "@poof-bg/mcp"],
+      "env": {
+        "POOF_API_KEY": "your-api-key"
+      }
     }
   }
 }
@@ -151,9 +153,9 @@ Check your account balance, plan details, and credit usage.
   "data": {
     "organizationId": "org_abc123",
     "plan": "Pro",
-    "maxCredits": 5000,
+    "maxCredits": 2000,
     "usedCredits": 1234,
-    "remainingCredits": 3766
+    "remainingCredits": 766
   }
 }
 ```
@@ -188,7 +190,7 @@ Check your account balance, plan details, and credit usage.
 >
 > [Uses get_account tool]
 >
-> You're on the Pro plan with 3,766 credits remaining out of 5,000 this billing cycle.
+> You're on the Pro plan with 766 credits remaining out of 2,000 this billing cycle.
 
 ## Troubleshooting
 

@@ -1,6 +1,6 @@
 ---
 title: Permission Denied
-description: "Access to this resource is forbidden"
+description: "The endpoint or feature is not included in your current plan"
 ---
 
 **HTTP Status:** 403
@@ -8,39 +8,26 @@ description: "Access to this resource is forbidden"
 ```json
 {
   "code": "permission_denied",
-  "message": "Permission denied",
-  "details": "Your account may be suspended or the API key revoked",
-  "request_id": "req_abc123"
+  "message": "This endpoint is not included in your current plan.",
+  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+  "doc_url": "https://docs.poof.bg/errors/permission-denied"
 }
 ```
 
 ## Reasons and How to Fix
 
-### Account Suspended
+### Feature Not in Your Plan
 
-Your account may have been suspended due to a policy violation or billing issue.
-
-**To fix:**
-1. Check your email for any notifications from Poof
-2. Log into [dash.poof.bg](https://dash.poof.bg) to check account status
-3. Contact [support@poof.bg](mailto:support@poof.bg) if you believe this is an error
-
-### API Key Revoked
-
-The API key you're using may have been revoked.
+Your API key is valid, but the endpoint or feature you called is not part of your current plan.
 
 **To fix:**
-1. Log into [dash.poof.bg](https://dash.poof.bg)
-2. Check if your API key is still active
-3. Generate a new key if needed
+1. Check your plan with the [`/me` endpoint](/api-reference/account) or at [dash.poof.bg](https://dash.poof.bg)
+2. Upgrade to a plan that includes the feature
+3. Contact [support@poof.bg](mailto:support@poof.bg) if you believe your plan should include it
 
-### Terms of Service Violation
+### API Key Not Permitted
 
-Automated abuse detection may have flagged your usage.
-
-**To fix:**
-- Review our [Terms of Service](https://poof.bg/terms)
-- Contact support to discuss your use case
+The key may have been revoked or is not allowed to call this endpoint. Log into [dash.poof.bg](https://dash.poof.bg), check that the key is still active, and generate a new one if needed.
 
 ## Need Help?
 
