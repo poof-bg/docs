@@ -281,6 +281,15 @@ curl -X POST https://api.poof.bg/v1/remove \
   -o product-500.png
 ```
 
+```python Python
+result = client.remove("product.jpg", crop=True, width=500, height=500)
+result.save("product-500.png")
+```
+
+```typescript TypeScript
+const result = await poof.remove(image, { crop: true, width: 500, height: 500 });
+```
+
 </CodeGroup>
 
 Use `fit=cover` to fill the canvas edge to edge instead (the overflow is cropped around the subject), and add `bg_color` to fill the padded area with a colour:
@@ -299,6 +308,27 @@ curl -X POST https://api.poof.bg/v1/remove \
   -o square-1080.jpg
 ```
 
+```python Python
+result = client.remove(
+    "photo.jpg",
+    width=1080,
+    height=1080,
+    fit="cover",
+    format="jpg",
+    bg_color="#ffffff"
+)
+```
+
+```typescript TypeScript
+const result = await poof.remove(image, {
+  width: 1080,
+  height: 1080,
+  fit: 'cover',
+  format: 'jpg',
+  bgColor: '#ffffff',
+});
+```
+
 </CodeGroup>
 
 Set only `width` (or only `height`) to scale to that dimension and let the other follow the aspect ratio. Use `fit=scale-down` if small images should keep their native size rather than being enlarged to the target:
@@ -313,6 +343,14 @@ curl -X POST https://api.poof.bg/v1/remove \
   -F "height=1000" \
   -F "fit=scale-down" \
   -o icon-1000.png
+```
+
+```python Python
+result = client.remove("icon.png", width=1000, height=1000, fit="scale-down")
+```
+
+```typescript TypeScript
+const result = await poof.remove(image, { width: 1000, height: 1000, fit: 'scale-down' });
 ```
 
 </CodeGroup>

@@ -102,6 +102,22 @@ result = client.remove(
 # Grayscale alpha mask only
 result = client.remove("photo.jpg", channels="alpha")
 
+# Exact 500x500 output, never stretched: subject cropped, padded, centred
+result = client.remove("photo.jpg", crop=True, width=500, height=500)
+
+# Fill a 1080x1080 canvas on white instead (overflow cropped around the subject)
+result = client.remove(
+    "photo.jpg",
+    width=1080,
+    height=1080,
+    fit="cover",
+    format="jpg",
+    bg_color="#ffffff"
+)
+
+# Cap the width at 1000px, keep the aspect ratio, leave smaller images alone
+result = client.remove("photo.jpg", width=1000, fit="scale-down")
+
 # WebP for web
 result = client.remove(
     "photo.jpg",

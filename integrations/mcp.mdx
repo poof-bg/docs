@@ -131,8 +131,11 @@ Remove the background from an image. Accepts a URL or base64-encoded image data 
 | `format` | string | No | Output format: `png`, `jpg`, `webp` (default: `png`) |
 | `channels` | string | No | Color channels: `rgba` (transparent) or `rgb` (opaque) (default: `rgba`) |
 | `bg_color` | string | No | Background color for RGB output. Hex (e.g., `#ffffff`), RGB, or color name |
-| `size` | string | No | Output size: `full`, `preview`, `small`, `medium`, `large` (default: `full`) |
+| `size` | string | No | Output size preset: `full`, `preview`, `medium`, `hd` (default: `full`). Ignored when `width`/`height` is set |
 | `crop` | boolean | No | Crop image to subject bounds (default: `false`) |
+| `width` | integer | No | Output width in pixels (1–6000). Alone, the height follows the aspect ratio |
+| `height` | integer | No | Output height in pixels (1–6000). Alone, the width follows the aspect ratio |
+| `fit` | string | No | How to fit into `width` × `height` without stretching: `contain` (default, pad), `cover` (fill, crop the overflow around the subject), `scale-down` (pad, never enlarge) |
 
 ### `get_account`
 

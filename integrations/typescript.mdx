@@ -117,6 +117,21 @@ const result = await poof.remove(image, {
 // Grayscale alpha mask only
 const result = await poof.remove(image, { channels: 'alpha' });
 
+// Exact 500x500 output, never stretched: subject cropped, padded, centred
+const result = await poof.remove(image, { crop: true, width: 500, height: 500 });
+
+// Fill a 1080x1080 canvas on white instead (overflow cropped around the subject)
+const result = await poof.remove(image, {
+  width: 1080,
+  height: 1080,
+  fit: 'cover',
+  format: 'jpg',
+  bgColor: '#ffffff',
+});
+
+// Cap the width at 1000px, keep the aspect ratio, leave smaller images alone
+const result = await poof.remove(image, { width: 1000, fit: 'scale-down' });
+
 // WebP for web
 const result = await poof.remove(image, {
   format: 'webp',
