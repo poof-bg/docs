@@ -1,0 +1,223 @@
+---
+title: Migrate from remove.bg
+description: "Move a remove.bg API integration to Poof: what stays the same, what is mapped, and what is not supported"
+---
+
+remove.bg is being sunset as a standalone product. Its website banner states that the standalone site will no longer be available from **1 December 2026 at 9:00am CET**, and the [remove.bg API documentation](https://www.remove.bg/api) states that from the same date background removal "moves to Leonardo.Ai, also part of Canva". According to [Leonardo.Ai's migration helper](https://docs.leonardo.ai/docs/migrate-from-the-removebg-api-to-leonardoai), remove.bg API keys and credits do not transfer.
+
+Poof speaks the same dialect as the remove.bg API: a `multipart/form-data` POST with an `image_file` field, an API key header, and the processed image returned as bytes. For most integrations the migration is a hostname change and a new key. This guide lists every remove.bg parameter and header and what happens to it on Poof.
+
+<Note>
+Leonardo.Ai is Canva's own migration target, but it is a different API: `Authorization: Bearer` with a new key, a JSON request with the image as base64 or a URL and `"model": "remove-bg"`, and a JSON response that points at a download URL. Leonardo lists $0.1047 per image. Poof keeps the multipart request and binary response and starts from $0.0015 per image, with 100 free credits every month.
+</Note>
+
+## 1. Endpoint and authentication
+
+| | remove.bg | Poof |
+|---|---|---|
+| Endpoint | `POST https://api.remove.bg/v1.0/removebg` | `POST https://api.poof.bg/v1/remove` |
+| Auth header | `X-Api-Key: <remove.bg key>` | `x-api-key: <Poof key>` |
+| Account info | `GET https://api.remove.bg/v1.0/account` | [`GET https://api.poof.bg/v1/me`](/api-reference/account) |
+| Request body | `multipart/form-data` | `multipart/form-data`, unchanged |
+| Success response | Binary image | Binary image, unchanged |
+
+HTTP header names are case-insensitive, so code that already sends `X-Api-Key` works as-is once the value is a Poof key. Get a key at [dash.poof.bg](https://dash.poof.bg).
+
+<CodeGroup>
+
+```bash cURL
+# remove.bg (before)
+curl -X POST https://api.remove.bg/v1.0/removebg \
+  -H 'X-Api-Key: YOUR_REMOVEBG_KEY' \
+  -F 'image_file=@image.jpg' \
+  -o no-bg.png
+
+# Poof (after)
+curl -X POST https://api.poof.bg/v1/remove \
+  -H 'X-Api-Key: YOUR_POOF_KEY' \
+  -F 'image_file=@image.jpg' \
+  -o no-bg.png
+```
+
+```python Python (requests)
+import requests
+
+# remove.bg (before)
+response = requests.post(
+    'https://api.remove.bg/v1.0/removebg',
+    files={'image_file': open('image.jpg', 'rb')},
+    headers={'X-Api-Key': 'YOUR_REMOVEBG_KEY'},
+)
+
+# Poof (after)
+response = requests.post(
+    'https://api.poof.bg/v1/remove',
+    files={'image_file': open('image.jpg', 'rb')},
+    headers={'X-Api-Key': 'YOUR_POOF_KEY'},
+)
+response.raise_for_status()
+open('no-bg.png', 'wb').write(response.content)
+```
+
+```javascript Node.js (fetch)
+import fs from 'node:fs/promises';
+
+const form = new FormData();
+form.append('image_file', new Blob([await fs.readFile('image.jpg')]), 'image.jpg');
+
+// remove.bg (before): https://api.remove.bg/v1.0/removebg with YOUR_REMOVEBG_KEY
+// Poof (after):
+const res = await fetch('https://api.poof.bg/v1/remove', {
+  method: 'POST',
+  headers: { 'X-Api-Key': 'YOUR_POOF_KEY' },
+  body: form,
+});
+if (!res.ok) throw new Error(await res.text());
+await fs.writeFile('no-bg.png', Buffer.from(await res.arrayBuffer()));
+```
+
+</CodeGroup>
+
+## 2. Request parameters
+
+Poof's validator ignores fields it does not know, so leftover remove.bg parameters never cause a rejection. The one exception is `size`: Poof validates its value, and remove.bg's `auto`, `small`, `regular`, `4k` and `50MP` are only accepted through the remove.bg compatibility layer described below.
+
+| remove.bg parameter | Poof | Status | Notes |
+|---|---|---|---|
+| `image_file` | `image_file` | Same | PNG, JPG or WebP, up to 20 MB |
+| `format` = `png` \| `jpg` \| `webp` | `format` | Same | `auto` and `zip` are not supported: request `png`, `jpg` or `webp` explicitly |
+| `bg_color` | `bg_color` | Same | Hex, `rgb()` or a CSS colour name |
+| `channels` = `rgba` \| `alpha` | `channels` | Same | Poof also accepts `rgb` for an opaque image on `bg_color` |
+| `crop` | `crop` | Same | `true`/`false`; Poof also accepts an aspect ratio such as `1:1` or `4:3` |
+| `size` = `preview` \| `medium` \| `hd` \| `full` | `size` | Same | Same names. On Poof they cap the output at 0.25 MP, 1.5 MP, 4 MP and the original size |
+| `size` = `auto` \| `4k` \| `50MP` | `size=full` | Mapped | Compatibility layer. Poof's default is already `full` |
+| `size` = `small` \| `regular` | `size=preview` | Mapped | Compatibility layer |
+| `crop_margin` | `padding` | Mapped | Compatibility layer. `padding` takes `0.1`, `10%` or `10%,7.5%`, and only applies with `crop` |
+| `image_url` | `image_url` | Mapped | Compatibility layer: Poof downloads the image server-side. Otherwise download it yourself and send `image_file` |
+| `image_file_b64` | `image_file_b64` | Mapped | Compatibility layer. Otherwise decode and send `image_file` |
+| `scale`, `position` | `width`, `height`, `fit` | Partial | No one-to-one mapping. Use [`width`/`height`](/api-reference/remove-background) (1 to 6000 px) with `fit=contain`, `cover` or `scale-down` |
+| `type`, `type_level` | — | Ignored | Poof does not take a subject hint. People, products, cars, animals and graphics are handled without one |
+| `semitransparency` | — | Ignored | Poof always returns a full alpha matte |
+| `roi` | — | Not supported | Crop the input before sending it |
+| `add_shadow`, `shadow_type`, `shadow_opacity` | — | Not supported | Composite shadows client-side |
+| `bg_image_url`, `bg_image_file` | — | Not supported | Request a transparent PNG or WebP and composite the background yourself |
+
+<Warning>
+**remove.bg compatibility layer.** Rows marked *Mapped* are handled by a compatibility layer on `/v1/remove` that also accepts the legacy path `/v1.0/removebg`. If a request with one of those fields is rejected with `validation_error`, your account has not been enabled for it yet: send one of Poof's four `size` values, `padding` instead of `crop_margin`, and upload the file as `image_file`.
+</Warning>
+
+## 3. Response headers
+
+| remove.bg header | Poof header | Notes |
+|---|---|---|
+| `Content-Type` | `Content-Type` | `image/png`, `image/jpeg` or `image/webp` |
+| `X-Width`, `X-Height` | `X-Image-Width`, `X-Image-Height` | The compatibility layer also emits `X-Width` and `X-Height` |
+| `X-Credits-Charged` | — | Every successful request costs 1 credit; failed requests are free. The compatibility layer emits `X-Credits-Charged: 1` |
+| `X-Type` | — | Not sent |
+| `X-Foreground-Top/Left/Width/Height` | — | Not sent. Use `crop=true` to get the subject bounds as the output |
+| `X-RateLimit-*`, `Retry-After` | — | See [rate_limit_exceeded](/errors/rate-limit-exceeded) |
+| — | `X-Request-ID` | Include it in support requests |
+| — | `X-Processing-Time-Ms` | Server-side processing time |
+| — | `X-Matte-Confidence`, `X-Matte-Ambiguous-Ratio` | Matte quality signals, see the [API reference](/api-reference/remove-background) |
+
+## 4. Error handling
+
+remove.bg returned errors as an array:
+
+```json remove.bg
+{
+  "errors": [
+    { "title": "<human-readable title>", "code": "<remove.bg error code>" }
+  ]
+}
+```
+
+Poof returns a flat object with a machine-readable `code`, a `message`, optional `details`, a `request_id` and a `doc_url`. Update any code that reads `errors[0].title`:
+
+```json Poof
+{
+  "code": "validation_error",
+  "message": "Invalid parameters.",
+  "details": { "size": ["must be one of: preview, medium, hd, full"] },
+  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+  "doc_url": "https://docs.poof.bg/errors/validation-error"
+}
+```
+
+| Situation | Poof status and code |
+|---|---|
+| Missing or invalid key | 401 [`authentication_error`](/errors/authentication-error) |
+| Out of credits | 402 [`payment_required`](/errors/payment-required) |
+| Rate limited | 429 [`rate_limit_exceeded`](/errors/rate-limit-exceeded) |
+| Bad parameter | 400 [`validation_error`](/errors/validation-error) |
+| No image in request | 400 [`missing_image`](/errors/missing-image) |
+| Image too large | 400 [`image_too_large`](/errors/image-too-large) |
+| Processing failure | 502 [`upstream_error`](/errors/upstream-error) |
+
+Check the status code first and then `code`; remove.bg used different status codes for some of these cases, so do not rely on the old mapping.
+
+The full list is in the [error reference](/errors/list).
+
+## 5. Using the SDKs instead
+
+If you would rather not hand-roll multipart requests, the official SDKs expose the same parameters as typed options.
+
+<CodeGroup>
+
+```python Python
+# pip install poofbg
+from poof import Poof
+
+client = Poof(api_key="YOUR_POOF_KEY")
+
+# remove.bg: -F image_file=@product.jpg -F size=auto -F crop=true -F crop_margin=10%
+result = client.remove_background(
+    "product.jpg",
+    size="full",
+    crop=True,
+    padding="10%",
+)
+result.save("no-bg.png")
+```
+
+```typescript TypeScript
+// npm install @poof-bg/js
+import { Poof } from '@poof-bg/js';
+import fs from 'fs/promises';
+
+const poof = new Poof({ apiKey: process.env.POOF_API_KEY! });
+
+// remove.bg: -F image_file=@product.jpg -F format=jpg -F bg_color=ffffff
+const result = await poof.removeBackground('product.jpg', {
+  format: 'jpg',
+  channels: 'rgb',
+  bgColor: '#ffffff',
+});
+await fs.writeFile('no-bg.jpg', Buffer.from(result.data));
+```
+
+</CodeGroup>
+
+See the [Python SDK](/integrations/python) and [TypeScript SDK](/integrations/typescript) pages for the full option list, and the [integrations overview](/integrations/overview) for n8n, Zapier, Make and MCP.
+
+## 6. Checklist
+
+<Steps>
+  <Step title="Create a Poof account and key">
+    Sign up at [dash.poof.bg](https://dash.poof.bg). The Free plan includes 100 credits every month, enough to validate the migration.
+  </Step>
+  <Step title="Swap the hostname and key">
+    `https://api.remove.bg/v1.0/removebg` becomes `https://api.poof.bg/v1/remove`; the header value becomes your Poof key.
+  </Step>
+  <Step title="Audit your parameters">
+    Fix `size` values, replace `crop_margin` with `padding`, and remove any dependence on shadows, `roi` or background images.
+  </Step>
+  <Step title="Update error handling">
+    Read `code` and `message` from the flat error body instead of `errors[0]`, and log `request_id`.
+  </Step>
+  <Step title="Run your test suite">
+    The success response is the same binary image, so existing assertions on output should pass unchanged.
+  </Step>
+</Steps>
+
+Pricing for the volume you process is on [poof.bg/pricing](https://poof.bg/pricing). A side-by-side of the Leonardo.Ai and Poof migration paths is on [poof.bg/remove-bg-alternative](https://poof.bg/remove-bg-alternative).
