@@ -92,7 +92,7 @@ Poof's validator ignores fields it does not know, so leftover remove.bg paramete
 | `size` = `preview` \| `medium` \| `hd` \| `full` | `size` | Same | Same names. On Poof they cap the output at 0.25 MP, 1.5 MP, 4 MP and the original size |
 | `size` = `auto` \| `4k` \| `50MP` | `size=full` | Mapped | Compatibility layer. Poof's default is already `full` |
 | `size` = `small` \| `regular` | `size=preview` | Mapped | Compatibility layer |
-| `crop_margin` | `padding` | Mapped | Compatibility layer. `padding` takes `0.1`, `10%` or `10%,7.5%`, and only applies with `crop` |
+| `crop_margin` | `padding` | Mapped | Compatibility layer, percentages only: `10%` maps directly, `5% 10%` becomes `10%,5%`. Pixel margins such as `10px` cannot be honoured and are ignored (Poof's default `padding` of `10%` applies). `padding`, when sent, always wins |
 | `image_url` | `image_url` | Mapped | Compatibility layer: Poof downloads the image server-side. Otherwise download it yourself and send `image_file` |
 | `image_file_b64` | `image_file_b64` | Mapped | Compatibility layer. Otherwise decode and send `image_file` |
 | `scale`, `position` | `width`, `height`, `fit` | Partial | No one-to-one mapping. Use [`width`/`height`](/api-reference/remove-background) (1 to 6000 px) with `fit=contain`, `cover` or `scale-down` |
@@ -102,9 +102,9 @@ Poof's validator ignores fields it does not know, so leftover remove.bg paramete
 | `add_shadow`, `shadow_type`, `shadow_opacity` | — | Not supported | Composite shadows client-side |
 | `bg_image_url`, `bg_image_file` | — | Not supported | Request a transparent PNG or WebP and composite the background yourself |
 
-<Warning>
-**remove.bg compatibility layer.** Rows marked *Mapped* are handled by a compatibility layer on `/v1/remove` that also accepts the legacy path `/v1.0/removebg`. If a request with one of those fields is rejected with `validation_error`, your account has not been enabled for it yet: send one of Poof's four `size` values, `padding` instead of `crop_margin`, and upload the file as `image_file`.
-</Warning>
+<Note>
+**remove.bg compatibility layer.** Rows marked *Mapped* are accepted by a compatibility layer on `/v1/remove`, which also answers on the legacy path `/v1.0/removebg`. It exists so an existing remove.bg client can switch by changing the hostname and key. In new code prefer Poof's native parameters: one of the four `size` values, `padding` instead of `crop_margin`, and `image_file` uploads.
+</Note>
 
 ## 3. Response headers
 

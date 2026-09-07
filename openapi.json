@@ -38,18 +38,28 @@
             "multipart/form-data": {
               "schema": {
                 "type": "object",
-                "required": ["image_file"],
                 "properties": {
                   "image_file": {
                     "type": "string",
                     "format": "binary",
-                    "description": "The image file to process. Max 20MB."
+                    "description": "The image file to process (JPEG, PNG or WebP). Max 20MB. Required unless image_file_b64 or image_url is given."
+                  },
+                  "image_file_b64": {
+                    "type": "string",
+                    "format": "byte",
+                    "description": "The image as a base64 string, with or without a data:<mime>;base64, prefix. Max 20MB decoded. Alternative to image_file."
+                  },
+                  "image_url": {
+                    "type": "string",
+                    "format": "uri",
+                    "example": "https://example.com/photos/product.jpg",
+                    "description": "Public http(s) URL of the image to process; Poof downloads it server-side (max 20MB, up to 3 redirects, 15s timeout). URLs pointing at private, loopback or link-local addresses are rejected. Alternative to image_file."
                   },
                   "format": {
                     "type": "string",
                     "enum": ["png", "jpg", "webp"],
                     "default": "png",
-                    "description": "Resulting image format."
+                    "description": "Resulting image format. For remove.bg compatibility, auto is accepted and treated as png; zip is not supported."
                   },
                   "channels": {
                     "type": "string",
@@ -66,7 +76,7 @@
                     "type": "string",
                     "enum": ["full", "preview", "medium", "hd"],
                     "default": "full",
-                    "description": "Output image size preset (megapixel cap). Ignored when width or height is set."
+                    "description": "Output image size preset (megapixel cap). Ignored when width or height is set. For remove.bg compatibility the aliases auto, 4k and 50MP (treated as full) and small and regular (treated as preview) are also accepted."
                   },
                   "crop": {
                     "oneOf": [
@@ -85,6 +95,11 @@
                     "type": "string",
                     "description": "Padding around the subject when crop is enabled, added to each side as a fraction (e.g. '0.1') or percentage (e.g. '10%') of the subject's size on that axis. Pass one value for both axes, or two comma-separated values as horizontal,vertical (e.g. '10%,7.5%' gives a canvas 120% of subject width and 115% of subject height). Default '10%'.",
                     "example": "10%"
+                  },
+                  "crop_margin": {
+                    "type": "string",
+                    "example": "10%",
+                    "description": "remove.bg-compatible alias for padding, using CSS margin shorthand with one to four space-separated values (e.g. '10%' or '0px 5%'). Percentages map onto padding; a zero pixel margin means a tight crop; other pixel margins cannot be honoured and are ignored. Ignored when padding is set."
                   },
                   "width": {
                     "type": "integer",
@@ -106,7 +121,8 @@
                     "default": "contain",
                     "description": "How to fit the image into width/height. 'contain' scales the image to fit inside and centres it, filling the remaining area with transparency (or bg_color). 'cover' scales the image to fill the canvas and crops the overflow, keeping the subject centred. 'scale-down' is like 'contain' but never enlarges: a smaller image keeps its native size (centred on the canvas when both dimensions are set). contain and cover only differ when both width and height are set."
                   }
-                }
+                },
+                "description": "Provide exactly one image input: image_file (upload), image_file_b64 (base64) or image_url (public URL). If several are sent, image_file wins, then image_file_b64, then image_url."
               }
             }
           }
@@ -148,6 +164,27 @@
                 "schema": {
                   "type": "integer",
                   "example": 1080
+                }
+              },
+              "X-Width": {
+                "description": "remove.bg-compatible alias of X-Image-Width",
+                "schema": {
+                  "type": "integer",
+                  "example": 1920
+                }
+              },
+              "X-Height": {
+                "description": "remove.bg-compatible alias of X-Image-Height",
+                "schema": {
+                  "type": "integer",
+                  "example": 1080
+                }
+              },
+              "X-Credits-Charged": {
+                "description": "Credits charged for this call. Always 1 on success; failed requests are free and carry no header.",
+                "schema": {
+                  "type": "integer",
+                  "example": 1
                 }
               },
               "X-Matte-Confidence": {
