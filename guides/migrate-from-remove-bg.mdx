@@ -23,6 +23,10 @@ Leonardo.Ai is Canva's own migration target, but it is a different API: `Authori
 
 HTTP header names are case-insensitive, so code that already sends `X-Api-Key` works as-is once the value is a Poof key. Get a key at [dash.poof.bg](https://dash.poof.bg).
 
+<Tip>
+**Smallest possible change: the hostname and the key.** Poof also serves the remove.bg path, so `POST https://api.poof.bg/v1.0/removebg` behaves exactly like `POST https://api.poof.bg/v1/remove`. It is a route alias, not an HTTP redirect, so POST bodies and headers are untouched. A remove.bg client that only swaps `api.remove.bg` for `api.poof.bg` and sets a Poof key in `X-Api-Key` keeps working. Use `/v1/remove` in new code; it is the canonical path.
+</Tip>
+
 <CodeGroup>
 
 ```bash cURL
@@ -111,8 +115,8 @@ Poof's validator ignores fields it does not know, so leftover remove.bg paramete
 | remove.bg header | Poof header | Notes |
 |---|---|---|
 | `Content-Type` | `Content-Type` | `image/png`, `image/jpeg` or `image/webp` |
-| `X-Width`, `X-Height` | `X-Image-Width`, `X-Image-Height` | The compatibility layer also emits `X-Width` and `X-Height` |
-| `X-Credits-Charged` | — | Every successful request costs 1 credit; failed requests are free. The compatibility layer emits `X-Credits-Charged: 1` |
+| `X-Width`, `X-Height` | `X-Image-Width`, `X-Image-Height` | Same values, different names. Update code that reads the dimensions |
+| `X-Credits-Charged` | — | Not sent. Every successful request costs exactly 1 credit and failed requests are free, so the value would always be `1` |
 | `X-Type` | — | Not sent |
 | `X-Foreground-Top/Left/Width/Height` | — | Not sent. Use `crop=true` to get the subject bounds as the output |
 | `X-RateLimit-*`, `Retry-After` | — | See [rate_limit_exceeded](/errors/rate-limit-exceeded) |
@@ -207,7 +211,7 @@ See the [Python SDK](/integrations/python) and [TypeScript SDK](/integrations/ty
     Sign up at [dash.poof.bg](https://dash.poof.bg). The Free plan includes 100 credits every month, enough to validate the migration.
   </Step>
   <Step title="Swap the hostname and key">
-    `https://api.remove.bg/v1.0/removebg` becomes `https://api.poof.bg/v1/remove`; the header value becomes your Poof key.
+    Replace `api.remove.bg` with `api.poof.bg` and set your Poof key in the API key header. The remove.bg path `/v1.0/removebg` keeps working on Poof, so these two edits are the minimum; switch to the canonical `/v1/remove` when convenient.
   </Step>
   <Step title="Audit your parameters">
     Fix `size` values, replace `crop_margin` with `padding`, and remove any dependence on shadows, `roi` or background images.

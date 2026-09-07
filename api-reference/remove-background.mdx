@@ -113,8 +113,6 @@ The API returns the processed image directly in the response body. Check the res
 | `X-Processing-Time-Ms` | Processing time in milliseconds |
 | `X-Image-Width` | Output image width in pixels |
 | `X-Image-Height` | Output image height in pixels |
-| `X-Width`, `X-Height` | remove.bg-compatible aliases of `X-Image-Width` and `X-Image-Height` |
-| `X-Credits-Charged` | Always `1` on a successful response (remove.bg-compatible). Failed requests are not charged |
 | `X-Matte-Confidence` | Confidence in the alpha matte, `0`–`1`. `1` means a fully decisive mask; lower values mean the model hedged. Heuristic, not a calibrated probability |
 | `X-Matte-Ambiguous-Ratio` | Fraction of pixels with alpha between 0.1 and 0.9, `0`–`1`. High values indicate large uncertain regions — useful for flagging results for manual review |
 

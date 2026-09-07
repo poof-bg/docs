@@ -166,27 +166,6 @@
                   "example": 1080
                 }
               },
-              "X-Width": {
-                "description": "remove.bg-compatible alias of X-Image-Width",
-                "schema": {
-                  "type": "integer",
-                  "example": 1920
-                }
-              },
-              "X-Height": {
-                "description": "remove.bg-compatible alias of X-Image-Height",
-                "schema": {
-                  "type": "integer",
-                  "example": 1080
-                }
-              },
-              "X-Credits-Charged": {
-                "description": "Credits charged for this call. Always 1 on success; failed requests are free and carry no header.",
-                "schema": {
-                  "type": "integer",
-                  "example": 1
-                }
-              },
               "X-Matte-Confidence": {
                 "description": "Heuristic confidence in the alpha matte, 0-1. Mean decisiveness of the mask: 1 means fully binary, lower values mean the model hedged. Not a calibrated probability.",
                 "schema": {
