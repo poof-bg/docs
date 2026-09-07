@@ -6,6 +6,8 @@ api: "POST /remove"
 
 The core endpoint for background removal. Send an image, get back a processed image with the background removed.
 
+Each successful request costs 1 credit regardless of parameters; failed requests are free.
+
 ## Request
 
 <ParamField body="image_file" type="file" required>
@@ -47,7 +49,7 @@ The core endpoint for background removal. Send an image, get back a processed im
 </ParamField>
 
 <ParamField body="padding" type="string" default="10%">
-  Padding around the subject when `crop` is enabled, added to **each side** as a fraction (`0.1`) or percentage (`10%`) of the subject's size on that axis.
+  Padding around the subject when `crop` is enabled, added to **each side** as a fraction (`0.1`) or percentage (`10%`) of the subject's size on that axis. Defaults to `10%`; ignored unless `crop` is set.
 
   Pass one value for both axes, or two comma-separated values as `horizontal,vertical` to pad the axes differently — e.g. `10%,7.5%` produces a canvas 120% of the subject's width and 115% of its height.
 
@@ -91,10 +93,10 @@ curl -X POST https://api.poof.bg/v1/remove \
 ```
 
 ```python Python
-from poofbg import Poof
+from poof import Poof
 
 client = Poof(api_key="YOUR_API_KEY")
-result = client.remove("photo.jpg")
+result = client.remove_background("photo.jpg")
 result.save("result.png")
 ```
 
@@ -104,8 +106,8 @@ import fs from 'fs/promises';
 
 const poof = new Poof({ apiKey: 'YOUR_API_KEY' });
 const image = await fs.readFile('photo.jpg');
-const result = await poof.remove(image);
-await fs.writeFile('result.png', result);
+const result = await poof.removeBackground(image);
+await fs.writeFile('result.png', Buffer.from(result.data));
 ```
 
 </CodeGroup>
@@ -127,7 +129,7 @@ curl -X POST https://api.poof.bg/v1/remove \
 ```
 
 ```python Python
-result = client.remove(
+result = client.remove_background(
     "product.jpg",
     format="jpg",
     channels="rgb",
@@ -137,7 +139,7 @@ result.save("product-white-bg.jpg")
 ```
 
 ```typescript TypeScript
-const result = await poof.remove(image, {
+const result = await poof.removeBackground(image, {
   format: 'jpg',
   channels: 'rgb',
   bgColor: '#ffffff'
@@ -161,13 +163,13 @@ curl -X POST https://api.poof.bg/v1/remove \
 ```
 
 ```python Python
-result = client.remove("photo.jpg", channels="alpha")
+result = client.remove_background("photo.jpg", channels="alpha")
 result.save("mask.png")
 ```
 
 ```typescript TypeScript
-const result = await poof.remove(image, { channels: 'alpha' });
-await fs.writeFile('mask.png', result);
+const result = await poof.removeBackground(image, { channels: 'alpha' });
+await fs.writeFile('mask.png', Buffer.from(result.data));
 ```
 
 </CodeGroup>
@@ -188,7 +190,7 @@ curl -X POST https://api.poof.bg/v1/remove \
 ```
 
 ```python Python
-result = client.remove(
+result = client.remove_background(
     "photo.jpg",
     size="preview",
     crop=True
@@ -197,7 +199,7 @@ result.save("thumbnail.png")
 ```
 
 ```typescript TypeScript
-const result = await poof.remove(image, {
+const result = await poof.removeBackground(image, {
   size: 'preview',
   crop: true
 });
@@ -221,7 +223,7 @@ curl -X POST https://api.poof.bg/v1/remove \
 ```
 
 ```python Python
-result = client.remove(
+result = client.remove_background(
     "product.jpg",
     crop=True,
     padding="10%,7.5%"
@@ -230,7 +232,7 @@ result.save("product-cropped.png")
 ```
 
 ```typescript TypeScript
-const result = await poof.remove(image, {
+const result = await poof.removeBackground(image, {
   crop: true,
   padding: '10%,7.5%'
 });
@@ -253,29 +255,35 @@ curl -X POST https://api.poof.bg/v1/remove \
 ```
 
 ```python Python
-result = client.remove("photo.jpg", format="webp")
+result = client.remove_background("photo.jpg", format="webp")
 result.save("result.webp")
 ```
 
 ```typescript TypeScript
-const result = await poof.remove(image, { format: 'webp' });
+const result = await poof.removeBackground(image, { format: 'webp' });
 ```
 
 </CodeGroup>
 
 ## Error Responses
 
+All errors return a flat JSON body (`{ "code", "message", "details"?, "request_id", "doc_url" }`) and carry an `X-Request-ID` header. Failed requests are not billed.
+
 | Status | Code | Description |
 |--------|------|-------------|
-| 400 | `validation_error` | Invalid parameter value |
-| 400 | `missing_image` | No image file provided |
-| 400 | `image_too_large` | Image exceeds 20MB limit |
-| 401 | `authentication_error` | Invalid or missing API key |
-| 402 | `payment_required` | Insufficient credits |
-| 429 | `rate_limit_exceeded` | Too many requests |
-| 500 | `internal_server_error` | Server error, retry later |
+| 400 | `validation_error` | Invalid parameter value or non-multipart body |
+| 400 | `missing_image` | No `image_file` part provided |
+| 400 / 413 | `image_too_large` | Image exceeds the 20 MB limit (413 when rejected by the processing service) |
+| 401 | `authentication_error` | `x-api-key` missing or not recognised |
+| 402 | `payment_required` | Monthly credits used up |
+| 403 | `permission_denied` | Endpoint or feature not included in your plan |
+| 422 | `invalid_image` | File could not be decoded as PNG, JPEG or WebP |
+| 429 | `rate_limit_exceeded` | Per-plan requests-per-minute limit or global per-IP limit hit |
+| 500 | `processing_failed` | The model or encoder failed on this image |
+| 500 | `internal_server_error` | Unexpected server error, retry later |
+| 502 / 503 / 504 | `upstream_error` | Processing service unreachable, unavailable, or timed out; retry with backoff |
 
-See [Error Handling](/errors) for detailed troubleshooting.
+See [API Error Codes](/errors/list) for detailed troubleshooting.
 
 <RequestExample>
 

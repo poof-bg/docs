@@ -1,0 +1,61 @@
+---
+title: Invalid Image
+description: "File could not be decoded as PNG, JPEG or WebP"
+---
+
+**HTTP Status:** 422
+
+```json
+{
+  "code": "invalid_image",
+  "message": "The file could not be decoded as PNG, JPEG or WebP.",
+  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+  "doc_url": "https://docs.poof.bg/errors/invalid-image"
+}
+```
+
+## Reasons and How to Fix
+
+### Unsupported Format
+
+Only PNG, JPEG and WebP are accepted. HEIC, GIF, TIFF, BMP, SVG, PDF and other formats are rejected.
+
+**To fix:**
+- Convert the image to PNG, JPEG or WebP before uploading
+
+```python
+from PIL import Image
+
+img = Image.open("photo.heic")  # requires pillow-heif for HEIC
+img.convert("RGB").save("photo.jpg", quality=90)
+```
+
+```bash
+# Using ImageMagick
+convert photo.tiff photo.png
+```
+
+### Corrupted or Truncated File
+
+The file may have been cut off during download or upload, or is not an image at all.
+
+**To fix:**
+1. Verify the file opens correctly in an image viewer
+2. Re-download or re-export the source image
+3. Check that you are sending the file bytes, not a path string or base64 text
+
+```bash
+# ❌ Wrong - sends the literal text "photo.jpg"
+-F "image_file=photo.jpg"
+
+# ✅ Correct - sends the file contents
+-F "image_file=@photo.jpg"
+```
+
+### Wrong Extension
+
+The content type is detected from the file bytes, not the extension. Renaming a `.gif` to `.png` does not make it a PNG.
+
+## Need Help?
+
+Contact us at [support@poof.bg](mailto:support@poof.bg) with your `request_id` and the image (if possible).

@@ -30,7 +30,7 @@
       "post": {
         "operationId": "removeBackground",
         "summary": "Remove Background",
-        "description": "Remove background from an image. This is a synchronous endpoint that returns the processed image directly in the response body.",
+        "description": "Remove the background from an image. This is a synchronous endpoint that returns the processed image directly in the response body. Each successful request costs 1 credit regardless of parameters. Failed requests are not billed.",
         "tags": ["Image Processing"],
         "requestBody": {
           "required": true,
@@ -70,8 +70,13 @@
                   },
                   "crop": {
                     "oneOf": [
-                      { "type": "boolean" },
-                      { "type": "string", "pattern": "^\\d+:\\d+$" }
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^\\d+:\\d+$"
+                      }
                     ],
                     "default": false,
                     "description": "Crop the image to the subject bounds. Pass true/false or an aspect ratio like '1:1', '4:3', '16:9'."
@@ -163,6 +168,15 @@
           },
           "400": {
             "description": "Bad Request",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -173,27 +187,30 @@
                     "summary": "Validation Error",
                     "value": {
                       "code": "validation_error",
-                      "message": "One or more parameters are invalid",
-                      "details": "Invalid value for 'format'. Expected: png, jpg, webp",
-                      "request_id": "req_abc123"
+                      "message": "Invalid value for 'format': expected one of png, jpg, webp.",
+                      "details": {
+                        "format": ["must be one of: png, jpg, webp"]
+                      },
+                      "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                      "doc_url": "https://docs.poof.bg/errors/validation-error"
                     }
                   },
                   "missing_image": {
                     "summary": "Missing Image",
                     "value": {
                       "code": "missing_image",
-                      "message": "The request did not contain an image file",
-                      "details": "Ensure you are sending multipart/form-data with field 'image_file'",
-                      "request_id": "req_abc123"
+                      "message": "No image_file part found. Send multipart/form-data with an 'image_file' field.",
+                      "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                      "doc_url": "https://docs.poof.bg/errors/missing-image"
                     }
                   },
                   "image_too_large": {
                     "summary": "Image Too Large",
                     "value": {
                       "code": "image_too_large",
-                      "message": "The uploaded image exceeds the maximum size",
-                      "details": "Maximum file size is 20MB",
-                      "request_id": "req_abc123"
+                      "message": "The uploaded image exceeds the 20 MB limit.",
+                      "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                      "doc_url": "https://docs.poof.bg/errors/image-too-large"
                     }
                   }
                 }
@@ -202,6 +219,15 @@
           },
           "401": {
             "description": "Unauthorized",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -209,15 +235,24 @@
                 },
                 "example": {
                   "code": "authentication_error",
-                  "message": "Invalid or missing API key",
-                  "details": "Check your 'x-api-key' header",
-                  "request_id": "req_abc123"
+                  "message": "API key missing or not recognised. Send it in the 'x-api-key' header.",
+                  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                  "doc_url": "https://docs.poof.bg/errors/authentication-error"
                 }
               }
             }
           },
           "402": {
             "description": "Payment Required",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -225,15 +260,24 @@
                 },
                 "example": {
                   "code": "payment_required",
-                  "message": "Insufficient credits",
-                  "details": "Upgrade your plan or wait for the next billing cycle",
-                  "request_id": "req_abc123"
+                  "message": "Your plan's monthly credits are used up. Top up, enable Auto Recharge, upgrade, or wait for the cycle reset.",
+                  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                  "doc_url": "https://docs.poof.bg/errors/payment-required"
                 }
               }
             }
           },
           "403": {
             "description": "Forbidden",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -241,15 +285,74 @@
                 },
                 "example": {
                   "code": "permission_denied",
-                  "message": "Permission denied",
-                  "details": "Your account may be suspended or the API key revoked",
-                  "request_id": "req_abc123"
+                  "message": "This endpoint is not included in your current plan.",
+                  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                  "doc_url": "https://docs.poof.bg/errors/permission-denied"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload Too Large",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "image_too_large",
+                  "message": "The uploaded image exceeds the 20 MB limit.",
+                  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                  "doc_url": "https://docs.poof.bg/errors/image-too-large"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "invalid_image",
+                  "message": "The file could not be decoded as PNG, JPEG or WebP.",
+                  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                  "doc_url": "https://docs.poof.bg/errors/invalid-image"
                 }
               }
             }
           },
           "429": {
             "description": "Too Many Requests",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -257,31 +360,63 @@
                 },
                 "example": {
                   "code": "rate_limit_exceeded",
-                  "message": "Rate limit exceeded",
-                  "details": "Implement exponential backoff and retry",
-                  "request_id": "req_abc123"
+                  "message": "Rate limit exceeded for your plan. Retry with exponential backoff.",
+                  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                  "doc_url": "https://docs.poof.bg/errors/rate-limit-exceeded"
                 }
               }
             }
           },
           "500": {
             "description": "Internal Server Error",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
                 },
-                "example": {
-                  "code": "internal_server_error",
-                  "message": "Internal server error",
-                  "details": "Please try again later",
-                  "request_id": "req_abc123"
+                "examples": {
+                  "internal_server_error": {
+                    "summary": "Internal Server Error",
+                    "value": {
+                      "code": "internal_server_error",
+                      "message": "An unexpected error occurred. Please try again.",
+                      "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                      "doc_url": "https://docs.poof.bg/errors/internal-server-error"
+                    }
+                  },
+                  "processing_failed": {
+                    "summary": "Processing Failed",
+                    "value": {
+                      "code": "processing_failed",
+                      "message": "The model could not process this image. Try a smaller image or a different format.",
+                      "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                      "doc_url": "https://docs.poof.bg/errors/processing-failed"
+                    }
+                  }
                 }
               }
             }
           },
           "502": {
             "description": "Bad Gateway",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -289,9 +424,59 @@
                 },
                 "example": {
                   "code": "upstream_error",
-                  "message": "Upstream processing failed",
-                  "details": "Retry with the same Idempotency-Key",
-                  "request_id": "req_abc123"
+                  "message": "The processing service is unreachable. Retry with exponential backoff.",
+                  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                  "doc_url": "https://docs.poof.bg/errors/upstream-error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "upstream_error",
+                  "message": "The processing service is temporarily unavailable. Retry with exponential backoff.",
+                  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                  "doc_url": "https://docs.poof.bg/errors/upstream-error"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Gateway Timeout",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "upstream_error",
+                  "message": "The processing service timed out. Retry with exponential backoff.",
+                  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                  "doc_url": "https://docs.poof.bg/errors/upstream-error"
                 }
               }
             }
@@ -303,7 +488,7 @@
       "get": {
         "operationId": "getMe",
         "summary": "Get Account Info",
-        "description": "Returns information about the authenticated account including plan details and credit usage.",
+        "description": "Returns information about the authenticated account including plan details and credit usage. This endpoint is free: it does not consume credits and is not rate limited.",
         "tags": ["Account"],
         "responses": {
           "200": {
@@ -316,19 +501,34 @@
                 "example": {
                   "organizationId": "org_abc123",
                   "plan": "Pro",
-                  "maxCredits": 5000,
+                  "maxCredits": 2000,
                   "usedCredits": 1234,
-                  "autoRechargeThreshold": 100
+                  "autoRechargeThreshold": 0.9
                 }
               }
             }
           },
           "401": {
             "description": "Unauthorized",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "authentication_error",
+                  "message": "API key missing or not recognised. Send it in the 'x-api-key' header.",
+                  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                  "doc_url": "https://docs.poof.bg/errors/authentication-error"
                 }
               }
             }
@@ -349,6 +549,7 @@
     "schemas": {
       "Error": {
         "type": "object",
+        "description": "Error body returned by every non-2xx response. The X-Request-ID response header equals request_id.",
         "required": ["code", "message", "request_id"],
         "properties": {
           "code": {
@@ -362,8 +563,11 @@
               "validation_error",
               "missing_image",
               "image_too_large",
+              "invalid_image",
+              "processing_failed",
               "upstream_error",
-              "internal_server_error"
+              "internal_server_error",
+              "not_found"
             ]
           },
           "message": {
@@ -371,12 +575,27 @@
             "description": "Human-readable error message"
           },
           "details": {
-            "type": "string",
-            "description": "Additional details or troubleshooting steps"
+            "description": "Optional additional context. For validation_error this is an object mapping field names to a list of messages.",
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": true
+              },
+              {
+                "type": "string"
+              }
+            ]
           },
           "request_id": {
             "type": "string",
-            "description": "Unique request ID for support"
+            "description": "Unique request ID for support (also sent as the X-Request-ID header)",
+            "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+          },
+          "doc_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Link to the documentation page for this error code",
+            "example": "https://docs.poof.bg/errors/validation-error"
           }
         }
       },
@@ -389,22 +608,28 @@
           },
           "plan": {
             "type": "string",
-            "description": "Current plan name"
+            "description": "Current plan display name (e.g. \"Free\", \"Pro\")",
+            "example": "Pro"
           },
           "maxCredits": {
             "type": "integer",
-            "description": "Total credits available in billing cycle"
+            "description": "Total credits available in billing cycle",
+            "example": 2000
           },
           "usedCredits": {
             "type": "integer",
-            "description": "Credits used in current billing cycle"
+            "description": "Credits used in current billing cycle",
+            "example": 1234
           },
           "autoRechargeThreshold": {
-            "type": "integer",
-            "nullable": true,
-            "description": "Credit threshold for auto-recharge (if enabled)"
+            "type": "number",
+            "minimum": 0.5,
+            "maximum": 0.95,
+            "description": "Fraction of the plan limit at which Auto Recharge triggers (e.g. 0.9 = 90%). Omitted when Auto Recharge is off.",
+            "example": 0.9
           }
-        }
+        },
+        "required": ["organizationId", "plan", "maxCredits", "usedCredits"]
       }
     }
   },

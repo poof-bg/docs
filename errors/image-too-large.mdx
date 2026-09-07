@@ -3,22 +3,22 @@ title: Image Too Large
 description: "Image exceeds size limit"
 ---
 
-**HTTP Status:** 400
+**HTTP Status:** 400 (or 413 when the upload is rejected by the processing service)
 
 ```json
 {
   "code": "image_too_large",
-  "message": "The uploaded image exceeds the maximum size",
-  "details": "Maximum file size is 20MB",
-  "request_id": "req_abc123"
+  "message": "The uploaded image exceeds the 20 MB limit.",
+  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+  "doc_url": "https://docs.poof.bg/errors/image-too-large"
 }
 ```
 
 ## Reasons and How to Fix
 
-### File Size Exceeds 20MB
+### File Size Exceeds 20 MB
 
-The maximum allowed file size is 20MB.
+The maximum allowed file size is 20 MB. The API gateway normally rejects oversized uploads with `400`; if the file reaches the processing service it is rejected there with `413`. Handle both statuses the same way.
 
 **To fix:**
 1. Compress the image before uploading

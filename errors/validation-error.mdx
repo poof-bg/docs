@@ -8,11 +8,18 @@ description: "Invalid request parameters"
 ```json
 {
   "code": "validation_error",
-  "message": "One or more parameters are invalid",
-  "details": "Invalid value for 'format'. Expected: png, jpg, webp",
-  "request_id": "req_abc123"
+  "message": "Invalid value for 'format': expected one of png, jpg, webp.",
+  "details": {
+    "format": [
+      "must be one of: png, jpg, webp"
+    ]
+  },
+  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+  "doc_url": "https://docs.poof.bg/errors/validation-error"
 }
 ```
+
+For validation errors, `details` is an object mapping each invalid field name to a list of messages.
 
 ## Reasons and How to Fix
 
@@ -25,7 +32,7 @@ A parameter has an invalid value that doesn't match the expected options.
 - `channels` must be one of: `rgba`, `rgb`, `alpha`
 - `size` must be one of: `full`, `preview`, `medium`, `hd`
 - `crop` must be a boolean (`true`/`false`) or an aspect ratio like `1:1`, `4:3`, `16:9`
-- `padding` must be a number (`0.1`) or percentage (`10%`)
+- `padding` must be a number (`0.1`) or percentage (`10%`), optionally as `horizontal,vertical` (`10%,7.5%`)
 
 ### Incorrect Data Types
 
@@ -39,17 +46,20 @@ Parameters must be the correct type.
 -F "crop=true"
 ```
 
-### Missing Required Parameters
+### Non-multipart Body
 
-The `image_file` parameter is required for the `/remove` endpoint.
+The `/remove` endpoint only accepts `multipart/form-data`. A JSON or raw body is rejected.
 
 ```bash
-# ❌ Wrong - missing image
-curl -X POST https://api.poof.bg/v1/remove -H "x-api-key: KEY"
+# ❌ Wrong - JSON body
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "x-api-key: pk_your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{"image": "..."}'
 
 # ✅ Correct
 curl -X POST https://api.poof.bg/v1/remove \
-  -H "x-api-key: KEY" \
+  -H "x-api-key: pk_your_api_key" \
   -F "image_file=@photo.jpg"
 ```
 
@@ -57,13 +67,13 @@ curl -X POST https://api.poof.bg/v1/remove \
 
 | Parameter | Type | Valid Values |
 |-----------|------|--------------|
-| `image_file` | file | Required. Max 20MB |
+| `image_file` | file | Required. JPEG, PNG or WebP, max 20 MB |
 | `format` | string | `png`, `jpg`, `webp` |
 | `channels` | string | `rgba`, `rgb`, `alpha` |
 | `bg_color` | string | Hex, RGB, or color name |
 | `size` | string | `full`, `preview`, `medium`, `hd` |
 | `crop` | boolean or string | `true`, `false`, or aspect ratio like `1:1` |
-| `padding` | string | Number (`0.1`) or percentage (`10%`), with `crop` |
+| `padding` | string | Number (`0.1`) or percentage (`10%`), optionally `horizontal,vertical`; only with `crop` |
 
 ## Need Help?
 
