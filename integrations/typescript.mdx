@@ -133,6 +133,21 @@ const result = await poof.removeBackground(image, {
   padding: '10%,7.5%',
 });
 
+// Exact 500x500 output, never stretched: subject cropped, padded, centred
+const result = await poof.removeBackground(image, { crop: true, width: 500, height: 500 });
+
+// Fill a 1080x1080 canvas on white instead (overflow cropped around the subject)
+const result = await poof.removeBackground(image, {
+  width: 1080,
+  height: 1080,
+  fit: 'cover',
+  format: 'jpg',
+  bgColor: '#ffffff',
+});
+
+// Cap the width at 1000px, keep the aspect ratio, leave smaller images alone
+const result = await poof.removeBackground(image, { width: 1000, fit: 'scale-down' });
+
 // WebP for web
 const result = await poof.removeBackground(image, {
   format: 'webp',
@@ -150,10 +165,9 @@ const result = await poof.removeBackground(image, {
 | `padding` | Padding around the subject when `crop` is set: `'10%'` or `'0.1'` for both axes, or `'10%,7.5%'` for `horizontal,vertical` (default `10%`) |
 
 <Note>
-`channels: 'alpha'`, `padding`, aspect-ratio `crop` and the matte metadata fields are on the SDK's main branch and ship in the next release. The currently published `@poof-bg/js` 1.0.0 passes `size` and `channels` through unchanged but does not expose `padding` or the matte fields.
+`channels: 'alpha'`, `padding`, aspect-ratio `crop`, the matte metadata fields and the `width` / `height` / `fit` output-size options are on the SDK's main branch and ship in the next release (`@poof-bg/js` 1.1.0). The currently published 1.0.0 passes `size` and `channels` through unchanged but does not expose `padding`, the matte fields or the output-size options.
 </Note>
 
-`width`, `height` and `fit` are not exposed by the SDK; call the [REST API](/api-reference/remove-background) directly if you need them.
 
 Every successful call costs 1 credit regardless of options. Failed calls are not billed.
 

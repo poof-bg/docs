@@ -36,7 +36,7 @@ Each successful request costs 1 credit regardless of parameters; failed requests
 </ParamField>
 
 <ParamField body="size" type="string" default="full">
-  Output image size preset.
+  Output image size preset (megapixel cap). Ignored when `width` or `height` is set.
   - `full` — Original resolution
   - `preview` — up to 0.25 megapixels
   - `medium` — up to 1.5 megapixels
@@ -61,6 +61,33 @@ Each successful request costs 1 credit regardless of parameters; failed requests
 | `5%,0`      | Horizontal padding only                                       |
 
   Padding is applied before any aspect-ratio expansion from `crop`. If the padded area extends beyond the original image, it is filled with transparent pixels.
+</ParamField>
+
+<ParamField body="width" type="integer">
+  Output width in pixels, `1`–`6000`. On its own, the height follows the image's aspect ratio. Together with `height`, the image is fitted into a `width` × `height` canvas according to `fit`.
+
+  The aspect ratio is always preserved — the image is never stretched or squeezed. Images smaller than the target are upscaled unless `fit` is `scale-down`. Applied after `crop`, and overrides `size`.
+</ParamField>
+
+<ParamField body="height" type="integer">
+  Output height in pixels, `1`–`6000`. On its own, the width follows the image's aspect ratio. Together with `width`, the image is fitted into a `width` × `height` canvas according to `fit`.
+</ParamField>
+
+<ParamField body="fit" type="string" default="contain">
+  How to fit the image into `width`/`height`. The image is never stretched.
+  - `contain` — scale the image to fit inside the canvas and centre it. The remaining area is transparent, or filled with `bg_color` (white for `jpg`).
+  - `cover` — scale the image to fill the canvas and crop the overflow, keeping the subject centred.
+  - `scale-down` — like `contain`, but never enlarges: an image smaller than the target keeps its native size (centred on the canvas when both dimensions are set).
+
+  `contain` and `cover` only differ when both `width` and `height` are set.
+
+| Parameters                              | Result                                                                 |
+|-----------------------------------------|------------------------------------------------------------------------|
+| `width=500`                             | 500px wide, height follows the aspect ratio                            |
+| `width=500&height=500`                  | 500 × 500, image fitted inside and centred, padding transparent        |
+| `width=500&height=500&fit=cover`        | 500 × 500, image fills the canvas, overflow cropped around the subject |
+| `crop=true&width=500&height=500`        | Subject cropped (with `padding`), then fitted into 500 × 500           |
+| `width=500&height=500&fit=scale-down`   | 500 × 500, a smaller image is centred at its native size, not enlarged |
 </ParamField>
 
 ## Response
@@ -236,6 +263,96 @@ const result = await poof.removeBackground(image, {
   crop: true,
   padding: '10%,7.5%'
 });
+```
+
+</CodeGroup>
+
+### Fixed Output Size
+
+Resize every result to exactly 500 × 500 — ideal for marketplace listings and product grids. The subject is cropped, padded, then fitted into the square canvas without distortion:
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "x-api-key: YOUR_API_KEY" \
+  -F "image_file=@product.jpg" \
+  -F "crop=true" \
+  -F "width=500" \
+  -F "height=500" \
+  -o product-500.png
+```
+
+```python Python
+result = client.remove_background("product.jpg", crop=True, width=500, height=500)
+result.save("product-500.png")
+```
+
+```typescript TypeScript
+const result = await poof.removeBackground(image, { crop: true, width: 500, height: 500 });
+```
+
+</CodeGroup>
+
+Use `fit=cover` to fill the canvas edge to edge instead (the overflow is cropped around the subject), and add `bg_color` to fill the padded area with a colour:
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "x-api-key: YOUR_API_KEY" \
+  -F "image_file=@photo.jpg" \
+  -F "width=1080" \
+  -F "height=1080" \
+  -F "fit=cover" \
+  -F "format=jpg" \
+  -F "bg_color=#ffffff" \
+  -o square-1080.jpg
+```
+
+```python Python
+result = client.remove_background(
+    "photo.jpg",
+    width=1080,
+    height=1080,
+    fit="cover",
+    format="jpg",
+    bg_color="#ffffff"
+)
+```
+
+```typescript TypeScript
+const result = await poof.removeBackground(image, {
+  width: 1080,
+  height: 1080,
+  fit: 'cover',
+  format: 'jpg',
+  bgColor: '#ffffff',
+});
+```
+
+</CodeGroup>
+
+Set only `width` (or only `height`) to scale to that dimension and let the other follow the aspect ratio. Use `fit=scale-down` if small images should keep their native size rather than being enlarged to the target:
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "x-api-key: YOUR_API_KEY" \
+  -F "image_file=@icon.png" \
+  -F "width=1000" \
+  -F "height=1000" \
+  -F "fit=scale-down" \
+  -o icon-1000.png
+```
+
+```python Python
+result = client.remove_background("icon.png", width=1000, height=1000, fit="scale-down")
+```
+
+```typescript TypeScript
+const result = await poof.removeBackground(image, { width: 1000, height: 1000, fit: 'scale-down' });
 ```
 
 </CodeGroup>
