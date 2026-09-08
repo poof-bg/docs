@@ -10,8 +10,16 @@ Each successful request costs 1 credit regardless of parameters; failed requests
 
 ## Request
 
-<ParamField body="image_file" type="file" required>
-  The image file to process. Supports JPEG, PNG, and WebP formats. Maximum size: 20MB.
+<ParamField body="image_file" type="file">
+  The image file to process. Supports JPEG, PNG, and WebP formats. Maximum size: 20MB. Required unless `image_file_b64` or `image_url` is given. When several inputs are sent, `image_file` wins, then `image_file_b64`, then `image_url`.
+</ParamField>
+
+<ParamField body="image_file_b64" type="string">
+  The image as a base64 string, with or without a `data:image/...;base64,` prefix. Same formats and 20MB limit (after decoding) as `image_file`.
+</ParamField>
+
+<ParamField body="image_url" type="string">
+  A public `http(s)` URL to fetch the image from. Poof downloads it server-side (up to 3 redirects, 15 second timeout, 20MB). URLs that resolve to private or internal addresses are rejected with `validation_error`.
 </ParamField>
 
 <ParamField body="format" type="string" default="png">
@@ -61,6 +69,10 @@ Each successful request costs 1 credit regardless of parameters; failed requests
 | `5%,0`      | Horizontal padding only                                       |
 
   Padding is applied before any aspect-ratio expansion from `crop`. If the padded area extends beyond the original image, it is filled with transparent pixels.
+</ParamField>
+
+<ParamField body="crop_margin" type="string">
+  remove.bg compatibility alias for `padding`, used only when `padding` is absent. Percentages map directly (`10%`; CSS shorthand `5% 10%` becomes `10%,5%`). Pixel values such as `10px` cannot be honoured and are ignored.
 </ParamField>
 
 <ParamField body="width" type="integer">
