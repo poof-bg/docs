@@ -1,15 +1,21 @@
 ---
 title: Migrate from remove.bg
-description: "Move a remove.bg API integration to Poof: what stays the same, what is mapped, and what is not supported"
+description: "remove.bg shuts down on 1 December 2026. Switch to Poof by changing the domain and key, or use Studio and the no-code integrations"
 ---
 
-remove.bg is being sunset as a standalone product. Its website banner states that the standalone site will no longer be available from **1 December 2026 at 9:00am CET**, and the [remove.bg API documentation](https://www.remove.bg/api) states that from the same date background removal "moves to Leonardo.Ai, also part of Canva". According to [Leonardo.Ai's migration helper](https://docs.leonardo.ai/docs/migrate-from-the-removebg-api-to-leonardoai), remove.bg API keys and credits do not transfer.
+remove.bg shuts down on 1 December 2026. Poof is a plug-and-play replacement: for most integrations you switch the domain from `api.remove.bg` to `api.poof.bg`, put your Poof key in the same header, and everything else keeps working. Same upload, same options, same image back.
 
-Poof speaks the same dialect as the remove.bg API: a `multipart/form-data` POST with an `image_file` field, an API key header, and the processed image returned as bytes. For most integrations the migration is a hostname change and a new key. This guide lists every remove.bg parameter and header and what happens to it on Poof.
+<Tip>
+**Plug and play: change the domain, keep the rest.** `api.poof.bg` serves the remove.bg path, so `POST https://api.poof.bg/v1.0/removebg` behaves exactly like `POST https://api.poof.bg/v1/remove`. It is a route alias, not an HTTP redirect, so POST bodies and headers arrive untouched. `X-Api-Key` works in any casing. A remove.bg client that only swaps the domain and the key value keeps working.
+</Tip>
 
-<Note>
-Leonardo.Ai is Canva's own migration target, but it is a different API: `Authorization: Bearer` with a new key, a JSON request with the image as base64 or a URL and `"model": "remove-bg"`, and a JSON response that points at a download URL. Leonardo lists $0.1047 per image. Poof keeps the multipart request and binary response and starts from $0.0015 per image, with 100 free credits every month.
-</Note>
+Pick the path that fits you:
+
+1. **No code.** Sign in at [dash.poof.bg](https://dash.poof.bg) and open **Studio**: upload images, process them on your account, select and download the results. For automations, connect Poof in [n8n](/integrations/n8n), [Zapier](/integrations/zapier) or [Make](/integrations/make), or give your AI assistant the [MCP server](/integrations/mcp).
+2. **An existing remove.bg integration.** Change the domain and the key as described above. Then skim section 2 for the handful of parameters that differ.
+3. **A full mapping.** Sections 1 to 6 below cover every endpoint, parameter, header and error, plus the [Python](/integrations/python) and [TypeScript](/integrations/typescript) SDKs and a migration checklist.
+
+The shutdown date comes from the [remove.bg API documentation](https://www.remove.bg/api); the standalone website closes on the same day at 9:00am CET.
 
 ## 1. Endpoint and authentication
 
@@ -23,9 +29,9 @@ Leonardo.Ai is Canva's own migration target, but it is a different API: `Authori
 
 HTTP header names are case-insensitive, so code that already sends `X-Api-Key` works as-is once the value is a Poof key. Get a key at [dash.poof.bg](https://dash.poof.bg).
 
-<Tip>
-**Smallest possible change: the hostname and the key.** Poof also serves the remove.bg path, so `POST https://api.poof.bg/v1.0/removebg` behaves exactly like `POST https://api.poof.bg/v1/remove`. It is a route alias, not an HTTP redirect, so POST bodies and headers are untouched. A remove.bg client that only swaps `api.remove.bg` for `api.poof.bg` and sets a Poof key in `X-Api-Key` keeps working. Use `/v1/remove` in new code; it is the canonical path.
-</Tip>
+<Note>
+Sticking with `/v1.0/removebg` on `api.poof.bg` is fine. Use `/v1/remove` in new code; it is the canonical path.
+</Note>
 
 <CodeGroup>
 
@@ -224,4 +230,4 @@ See the [Python SDK](/integrations/python) and [TypeScript SDK](/integrations/ty
   </Step>
 </Steps>
 
-Pricing for the volume you process is on [poof.bg/pricing](https://poof.bg/pricing). A side-by-side of the Leonardo.Ai and Poof migration paths is on [poof.bg/remove-bg-alternative](https://poof.bg/remove-bg-alternative).
+Pricing for the volume you process is on [poof.bg/pricing](https://poof.bg/pricing). For a shorter overview of why teams pick Poof after remove.bg, see [poof.bg/alternative/remove-bg](https://poof.bg/alternative/remove-bg).
