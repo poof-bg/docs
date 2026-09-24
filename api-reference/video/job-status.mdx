@@ -85,6 +85,36 @@ curl https://api.poof.bg/v1/video/jobs/vid_8f3a1c2e9b7d4a10 \
   Set only when `status` is `failed`: an object with `code` and `message` describing why the job failed. `null` otherwise.
 </ResponseField>
 
+<ResponseField name="stats" type="object">
+  Processing statistics. Present only when `status` is `completed`; absent otherwise.
+  <Expandable title="properties">
+    <ResponseField name="output_width" type="integer">
+      Output video width in pixels: the source size capped at 1920 px on the longest side, aspect ratio kept.
+    </ResponseField>
+    <ResponseField name="output_height" type="integer">
+      Output video height in pixels, capped in the same way.
+    </ResponseField>
+    <ResponseField name="processing_seconds" type="number">
+      Wall-clock time spent processing the job, from `started_at` to `completed_at`.
+    </ResponseField>
+    <ResponseField name="matting_seconds" type="number">
+      Time spent running the matting model on the GPU.
+    </ResponseField>
+    <ResponseField name="decode_wait_seconds" type="number">
+      Time the pipeline spent waiting for the decoder to deliver frames.
+    </ResponseField>
+    <ResponseField name="encode_wait_seconds" type="number">
+      Time the pipeline spent waiting for the encoder to accept frames.
+    </ResponseField>
+    <ResponseField name="scene_cuts" type="integer">
+      Number of scene cuts detected. Each cut resets the temporal stabiliser's history.
+    </ResponseField>
+    <ResponseField name="output_bytes" type="integer">
+      Size of the result file in bytes. Useful for showing download progress or checking storage before you [download it](/api-reference/video/download-result).
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
 Every response carries an `X-Request-ID` header.
 
 <ResponseExample>
@@ -127,7 +157,17 @@ Every response carries an `X-Request-ID` header.
   "format": "webm",
   "result_url": "https://api.poof.bg/v1/video/jobs/vid_8f3a1c2e9b7d4a10/result",
   "expires_at": "2026-09-25T10:12:41Z",
-  "error": null
+  "error": null,
+  "stats": {
+    "output_width": 1920,
+    "output_height": 1080,
+    "processing_seconds": 37.2,
+    "matting_seconds": 28.9,
+    "decode_wait_seconds": 1.4,
+    "encode_wait_seconds": 3.1,
+    "scene_cuts": 2,
+    "output_bytes": 18734211
+  }
 }
 ```
 
@@ -175,7 +215,7 @@ queued ──▶ processing ──▶ completed
 
 ## Polling
 
-Poll every 2 to 5 seconds. Short clips typically finish within a minute; a 5 minute clip can take several minutes. Polling is free and does not count towards your credits, but there is no benefit in polling faster than every 2 seconds.
+Poll every 2 to 5 seconds. Short clips typically finish within a minute; a 5 minute clip can take several minutes. Polling is free and does not count towards your credits. `GET` requests under `/video/jobs/` are exempt from your plan's [per-organisation rate limit](/errors/rate-limit-exceeded); only the global per-IP limit applies. Polling every 2 to 5 seconds is therefore safe on every plan, but there is no benefit in polling faster than that.
 
 If you would rather not poll at all, pass a `webhook_url` when you submit the job and Poof will POST the job object to you when it completes or fails. See [Video webhooks](/guides/video-webhooks).
 

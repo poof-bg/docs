@@ -41,11 +41,21 @@ The body is the same job object that [Get Video Job](/api-reference/video/job-st
   "format": "webm",
   "result_url": "https://api.poof.bg/v1/video/jobs/vid_8f3a1c2e9b7d4a10/result",
   "expires_at": "2026-09-25T10:12:41Z",
-  "error": null
+  "error": null,
+  "stats": {
+    "output_width": 1920,
+    "output_height": 1080,
+    "processing_seconds": 37.2,
+    "matting_seconds": 28.9,
+    "decode_wait_seconds": 1.4,
+    "encode_wait_seconds": 3.1,
+    "scene_cuts": 2,
+    "output_bytes": 18734211
+  }
 }
 ```
 
-A failed job looks the same with `"event": "video.failed"`, `"status": "failed"`, `result_url` and `expires_at` set to `null`, and `error` set to `{ "code", "message" }`.
+A failed job looks the same with `"event": "video.failed"`, `"status": "failed"`, `result_url` and `expires_at` set to `null`, `error` set to `{ "code", "message" }`, and no `stats` object.
 
 ## Headers
 

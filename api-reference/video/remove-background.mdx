@@ -124,7 +124,7 @@ The API probes the video before accepting it, so the `202 Accepted` response alr
   URL of the result. `GET` it once the job is `completed`.
 </ResponseField>
 
-Every response carries an `X-Request-ID` header. The full job object, including `progress`, `expires_at` and `error`, is described on [Get Video Job](/api-reference/video/job-status).
+Every response carries an `X-Request-ID` header. The full job object, including `progress`, `expires_at`, `error` and the `stats` of a completed job, is described on [Get Video Job](/api-reference/video/job-status).
 
 <ResponseExample>
 
