@@ -6,7 +6,7 @@ api: "GET /video/jobs/{id}/result"
 
 Streams the output of a `completed` video job. The body is the video file (or ZIP of PNG frames) in the `format` you requested when you submitted the job.
 
-This endpoint is free: downloading does not consume credits, and like every `GET` under `/video/jobs/` it is exempt from your plan's per-organisation rate limit. The job's `stats.output_bytes` tells you the file size before you download. The result is available for 24 hours after completion (see `expires_at` on [Get Video Job](/api-reference/video/job-status)); after that it is deleted and this endpoint returns `404 job_not_found`.
+This endpoint is free: downloading does not consume credits, and like every `GET` under `/video/jobs/` it is exempt from your plan's per-organisation rate limit. The job's informational `stats.output_bytes` gives the file size before you download. The result is available for 24 hours after completion (see `expires_at` on [Get Video Job](/api-reference/video/job-status)); after that it is deleted and this endpoint returns `404 job_not_found`.
 
 ## Request
 

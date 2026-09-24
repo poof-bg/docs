@@ -90,7 +90,7 @@ curl https://api.poof.bg/v1/video/jobs/vid_8f3a1c2e9b7d4a10 \
 </ResponseField>
 
 <ResponseField name="stats" type="object">
-  Processing statistics. Present only when `status` is `completed`; absent otherwise.
+  Processing statistics. Present only when `status` is `completed`; absent otherwise. `output_width`, `output_height` and `processing_seconds` are guaranteed; the remaining keys are informational and may change or be removed without notice, so do not build logic on them.
   <Expandable title="properties">
     <ResponseField name="output_width" type="integer">
       Output video width in pixels: the source size capped at 1920 px on the longest side, aspect ratio kept.
@@ -102,19 +102,19 @@ curl https://api.poof.bg/v1/video/jobs/vid_8f3a1c2e9b7d4a10 \
       Wall-clock time spent processing the job, from `started_at` to `completed_at`.
     </ResponseField>
     <ResponseField name="matting_seconds" type="number">
-      Time spent running the matting model on the GPU.
+      Time spent running the matting model on the GPU. Informational, subject to change.
     </ResponseField>
     <ResponseField name="decode_wait_seconds" type="number">
-      Time the pipeline spent waiting for the decoder to deliver frames.
+      Time the pipeline spent waiting for the decoder to deliver frames. Informational, subject to change.
     </ResponseField>
     <ResponseField name="encode_wait_seconds" type="number">
-      Time the pipeline spent waiting for the encoder to accept frames.
+      Time the pipeline spent waiting for the encoder to accept frames. Informational, subject to change.
     </ResponseField>
     <ResponseField name="scene_cuts" type="integer">
-      Number of scene cuts detected. Each cut resets the temporal stabiliser's history.
+      Number of scene cuts detected. Each cut resets the temporal stabiliser's history. Informational, subject to change.
     </ResponseField>
     <ResponseField name="output_bytes" type="integer">
-      Size of the result file in bytes. Useful for showing download progress or checking storage before you [download it](/api-reference/video/download-result).
+      Size of the result file in bytes, handy for showing download progress before you [download it](/api-reference/video/download-result). Informational, subject to change.
     </ResponseField>
   </Expandable>
 </ResponseField>

@@ -72,6 +72,16 @@ Send `multipart/form-data` with either `video_file` or `video_url`.
 
 Frame rate, duration and aspect ratio are preserved. Output resolution is the source resolution capped at 1920 × 1080 (longest side 1920 px); larger inputs are downscaled.
 
+## What to expect
+
+The model extracts the main salient subject or subjects in each frame, the same way the image endpoint does. Best results come from a clearly separated subject, steady lighting and footage at or below 1080p. Known limitations:
+
+- **Crowds and partial subjects.** Crowds, people only partially visible at the frame edge, and small background objects may be dropped from the matte.
+- **Overlays.** Burned-in captions, logos and watermarks are often kept as foreground. Strip overlays before processing and add them back afterwards.
+- **Touching objects.** Objects that touch or overlap the subject (poles, laptop edges, hand-held items) can be included in some frames and not others.
+- **Black or white frames.** Fully black or fully white frames, such as fade-ins and fade-outs, produce an empty matte by design.
+- **Fine edges and motion.** Hair and fur edges are soft. The temporal stabiliser (`stabilize`, on by default) reduces edge flicker on static parts of the frame but does not eliminate it on fast motion.
+
 ## Response
 
 The API probes the video before accepting it, so the `202 Accepted` response already tells you the duration, frame count and the credit charge. It also contains the URLs to poll the job and download the result.
