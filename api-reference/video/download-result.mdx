@@ -1,0 +1,123 @@
+---
+title: Download Video Result
+description: "Download the processed video"
+api: "GET /video/jobs/{id}/result"
+---
+
+Streams the output of a `completed` video job. The body is the video file (or ZIP of PNG frames) in the `format` you requested when you submitted the job.
+
+This endpoint is free: downloading does not consume credits. The result is available for 24 hours after completion (see `expires_at` on [Get Video Job](/api-reference/video/job-status)); after that it is deleted and this endpoint returns `404 job_not_found`.
+
+## Request
+
+<ParamField path="id" type="string" required>
+  The job ID returned by `POST /video/remove` (starts with `vid_`).
+</ParamField>
+
+```bash
+curl https://api.poof.bg/v1/video/jobs/vid_8f3a1c2e9b7d4a10/result \
+  -H "x-api-key: pk_your_api_key" \
+  -o result.webm
+```
+
+## Response
+
+The response body is the file itself. Check the headers for the type:
+
+| Header | Description |
+|--------|-------------|
+| `Content-Type` | Depends on the job's `format`, see below |
+| `Content-Disposition` | `attachment; filename=result.<ext>` |
+| `X-Request-ID` | Unique request ID for support inquiries |
+
+| Job `format` | `Content-Type` | Filename |
+|---|---|---|
+| `webm` | `video/webm` | `result.webm` |
+| `mov` | `video/quicktime` | `result.mov` |
+| `mp4` | `video/mp4` | `result.mp4` |
+| `mask` | `video/mp4` | `result.mp4` |
+| `png` | `application/zip` | `result.zip` |
+
+Results can be large (a minute of ProRes 4444 at 1080p is several hundred megabytes), so stream the response to disk rather than buffering it in memory.
+
+## Examples
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.poof.bg/v1/video/jobs/vid_8f3a1c2e9b7d4a10/result \
+  -H "x-api-key: YOUR_API_KEY" \
+  -o clip-nobg.webm
+```
+
+```python Python
+import requests
+
+headers = {"x-api-key": "YOUR_API_KEY"}
+url = "https://api.poof.bg/v1/video/jobs/vid_8f3a1c2e9b7d4a10/result"
+
+with requests.get(url, headers=headers, stream=True) as r:
+    r.raise_for_status()
+    print(r.headers["Content-Type"])  # e.g. video/webm
+    with open("clip-nobg.webm", "wb") as out:
+        for chunk in r.iter_content(chunk_size=1024 * 1024):
+            out.write(chunk)
+```
+
+```typescript TypeScript
+import fs from 'node:fs';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
+import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
+
+const headers = { 'x-api-key': 'YOUR_API_KEY' };
+const url = 'https://api.poof.bg/v1/video/jobs/vid_8f3a1c2e9b7d4a10/result';
+
+const res = await fetch(url, { headers });
+if (!res.ok) throw new Error(await res.text());
+console.log(res.headers.get('content-type')); // e.g. video/webm
+
+await pipeline(
+  Readable.fromWeb(res.body as NodeReadableStream),
+  fs.createWriteStream('clip-nobg.webm')
+);
+```
+
+</CodeGroup>
+
+### Serving the result to a browser
+
+Do not hand your API key to the browser. Fetch the result on your server and proxy it, or download it once and serve it from your own storage or CDN. The result URL expires 24 hours after completion, so copy the file somewhere durable if you need it longer.
+
+```typescript
+// Express: stream a finished job's result to the client
+app.get('/videos/:id', async (req, res) => {
+  const upstream = await fetch(`https://api.poof.bg/v1/video/jobs/${req.params.id}/result`, {
+    headers: { 'x-api-key': process.env.POOF_API_KEY! },
+  });
+  if (!upstream.ok) return res.status(upstream.status).json(await upstream.json());
+
+  res.set('Content-Type', upstream.headers.get('content-type')!);
+  await pipeline(Readable.fromWeb(upstream.body as NodeReadableStream), res);
+});
+```
+
+## Error Responses
+
+| Status | Code | Description |
+|--------|------|-------------|
+| 401 | `authentication_error` | `x-api-key` missing or not recognised |
+| 404 | `job_not_found` | No job with this ID, or the result has expired (24 hours after completion) |
+| 409 | `job_not_ready` | The job is still `queued` or `processing`, or it `failed`. Poll [Get Video Job](/api-reference/video/job-status) until `status` is `completed` |
+
+See [API Error Codes](/errors/list) for the error body format.
+
+<RequestExample>
+
+```bash cURL
+curl https://api.poof.bg/v1/video/jobs/vid_8f3a1c2e9b7d4a10/result \
+  -H "x-api-key: YOUR_API_KEY" \
+  -o clip-nobg.webm
+```
+
+</RequestExample>

@@ -57,7 +57,8 @@
       "pages": [
         "introduction",
         "quickstart",
-        "guides/migrate-from-remove-bg"
+        "guides/migrate-from-remove-bg",
+        "guides/video-webhooks"
       ]
     },
     {
@@ -65,6 +66,15 @@
       "pages": [
         "api-reference/remove-background",
         "api-reference/account",
+        {
+          "group": "Video",
+          "icon": "video",
+          "pages": [
+            "api-reference/video/remove-background",
+            "api-reference/video/job-status",
+            "api-reference/video/download-result"
+          ]
+        },
         {
           "group": "Errors",
           "icon": "triangle-exclamation",
@@ -80,7 +90,13 @@
             "errors/invalid-image",
             "errors/processing-failed",
             "errors/upstream-error",
-            "errors/internal-server-error"
+            "errors/internal-server-error",
+            "errors/missing-video",
+            "errors/video-too-large",
+            "errors/video-too-long",
+            "errors/invalid-video",
+            "errors/job-not-found",
+            "errors/job-not-ready"
           ]
         }
       ]

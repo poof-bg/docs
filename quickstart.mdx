@@ -98,6 +98,12 @@ Your output file now contains the image with the background removed:
   <Card title="Explore Integrations" icon="puzzle-piece" href="/integrations/overview">
     Use our official SDKs and integrations
   </Card>
+  <Card title="Remove Video Backgrounds" icon="video" href="/api-reference/video/remove-background">
+    Transparent WebM, ProRes or green screen MP4 from clips up to 5 minutes
+  </Card>
+  <Card title="Video Webhooks" icon="bell" href="/guides/video-webhooks">
+    Get notified when a video job finishes instead of polling
+  </Card>
 </CardGroup>
 
 ## Common Options
@@ -135,3 +141,17 @@ curl -X POST https://api.poof.bg/v1/remove \
   -F "channels=alpha" \
   -o mask.png
 ```
+
+## Video
+
+The same API removes backgrounds from video. Submit a clip, poll the job (or use a [webhook](/guides/video-webhooks)), then download the result. Video costs 5 credits per second of source video.
+
+```bash
+# Submit a clip; the response is a job with status_url and result_url
+curl -X POST https://api.poof.bg/v1/video/remove \
+  -H "x-api-key: YOUR_API_KEY" \
+  -F "video_file=@clip.mp4" \
+  -F "format=webm"
+```
+
+See [Remove Video Background](/api-reference/video/remove-background) for the full flow in cURL, Python and TypeScript.

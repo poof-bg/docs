@@ -1,0 +1,69 @@
+---
+title: Invalid Video
+description: "File could not be decoded as a video"
+---
+
+**HTTP Status:** 422
+
+```json
+{
+  "code": "invalid_video",
+  "message": "The file could not be decoded as a video. Send MP4, MOV, WebM, M4V or MKV.",
+  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+  "doc_url": "https://docs.poof.bg/errors/invalid-video"
+}
+```
+
+## Reasons and How to Fix
+
+### Unsupported Format
+
+MP4, MOV, WebM, M4V and MKV containers are accepted. GIF, AVI, WMV, FLV, image sequences and audio-only files are rejected. Nothing is billed.
+
+**To fix:**
+- Convert the file to MP4 (H.264) before uploading
+
+```bash
+# Using ffmpeg
+ffmpeg -i clip.avi -c:v libx264 -crf 20 -c:a aac clip.mp4
+
+# Animated GIF to MP4
+ffmpeg -i animation.gif -movflags faststart -pix_fmt yuv420p -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" animation.mp4
+```
+
+### No Video Stream
+
+The container is fine but it contains no video track (for example an `.mp4` that only holds audio). Check the file with `ffprobe`:
+
+```bash
+ffprobe -v error -show_entries stream=codec_type,codec_name -of default=nw=1 clip.mp4
+```
+
+### Corrupted or Truncated File
+
+The file may have been cut off during download or upload, or is not a video at all.
+
+**To fix:**
+1. Verify the file plays in a video player
+2. Re-download or re-export the source video
+3. Check that you are sending the file bytes, not a path string
+
+```bash
+# ❌ Wrong - sends the literal text "clip.mp4"
+-F "video_file=clip.mp4"
+
+# ✅ Correct - sends the file contents
+-F "video_file=@clip.mp4"
+```
+
+### URL Did Not Return a Video
+
+When using `video_url`, the URL must return the raw video file. A page that embeds a video (a YouTube or Vimeo page, a Google Drive preview) is HTML, not a video. Use a direct download link, and make sure it is publicly reachable without cookies or authentication.
+
+### Wrong Extension
+
+The content type is detected from the file bytes, not the extension. Renaming a `.gif` to `.mp4` does not make it an MP4.
+
+## Need Help?
+
+Contact us at [support@poof.bg](mailto:support@poof.bg) with your `request_id` and the video (if possible).

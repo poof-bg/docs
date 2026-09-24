@@ -1,0 +1,50 @@
+---
+title: Job Not Found
+description: "Unknown video job ID, or the result has expired"
+---
+
+**HTTP Status:** 404
+
+```json
+{
+  "code": "job_not_found",
+  "message": "No video job with id 'vid_8f3a1c2e9b7d4a10' was found, or its result has expired.",
+  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+  "doc_url": "https://docs.poof.bg/errors/job-not-found"
+}
+```
+
+## Reasons and How to Fix
+
+### Result Has Expired
+
+Video results are kept for **24 hours after completion** (`expires_at` on the [job](/api-reference/video/job-status)). After that the output is deleted and both the job and its result return `404`.
+
+**To fix:**
+1. Download results promptly, ideally as soon as the job completes (use a [webhook](/guides/video-webhooks))
+2. Copy the file to your own storage if you need it for longer
+3. Submit the video again to get a new job. It is billed again
+
+### Wrong or Mistyped Job ID
+
+Job IDs start with `vid_` and are returned as `id` in the `202` response to `POST /video/remove`. Check that you are using the full ID and not, for example, the `request_id`.
+
+```bash
+# ❌ Wrong - request_id is not a job id
+curl https://api.poof.bg/v1/video/jobs/req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42 \
+  -H "x-api-key: pk_your_api_key"
+
+# ✅ Correct
+curl https://api.poof.bg/v1/video/jobs/vid_8f3a1c2e9b7d4a10 \
+  -H "x-api-key: pk_your_api_key"
+```
+
+The easiest way to avoid mistakes is to use the `status_url` and `result_url` from the `202` response verbatim.
+
+### Job Belongs to Another Account
+
+Jobs are scoped to the API key's organisation. A job created with one organisation's key is not visible to another and returns `404`, not `403`.
+
+## Need Help?
+
+Contact us at [support@poof.bg](mailto:support@poof.bg) with your `request_id` and the job ID.

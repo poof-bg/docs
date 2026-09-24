@@ -1,0 +1,45 @@
+---
+title: Video Too Long
+description: "Video is longer than 5 minutes"
+---
+
+**HTTP Status:** 400
+
+```json
+{
+  "code": "video_too_long",
+  "message": "The video is 7m 12s long. The maximum duration is 5 minutes.",
+  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+  "doc_url": "https://docs.poof.bg/errors/video-too-long"
+}
+```
+
+## Reasons and How to Fix
+
+### Duration Exceeds 5 Minutes
+
+Poof probes the video before accepting the job and rejects anything longer than 5 minutes (300 seconds). Nothing is billed.
+
+**To fix:**
+1. **Trim** the clip to the part you need
+2. **Split** longer videos into segments of up to 5 minutes, submit each as its own job, and join the results
+
+### Trimming and Splitting with ffmpeg
+
+```bash
+# Keep the first 5 minutes
+ffmpeg -i long.mp4 -t 300 -c copy part1.mp4
+
+# Split into 5 minute segments (part_000.mp4, part_001.mp4, ...)
+ffmpeg -i long.mp4 -c copy -map 0 -segment_time 300 -f segment -reset_timestamps 1 part_%03d.mp4
+```
+
+`-c copy` avoids re-encoding, so it is fast and lossless. Cuts land on the nearest keyframe, so segments may be a second or so longer or shorter than requested; keep a small margin below 300 seconds if the exact cut matters.
+
+### Credits
+
+Each segment is billed separately at 5 credits per second of source video, rounded up per job, so splitting a 7 minute clip into a 5 minute and a 2 minute job costs the same as it would in one job. See [Credits](/api-reference/video/remove-background#credits).
+
+## Need Help?
+
+Contact us at [support@poof.bg](mailto:support@poof.bg) with your `request_id`.

@@ -1,0 +1,49 @@
+---
+title: Job Not Ready
+description: "The video job has not completed yet"
+---
+
+**HTTP Status:** 409
+
+```json
+{
+  "code": "job_not_ready",
+  "message": "Job 'vid_8f3a1c2e9b7d4a10' is still processing (42%). Poll the job until its status is 'completed'.",
+  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+  "doc_url": "https://docs.poof.bg/errors/job-not-ready"
+}
+```
+
+## Reasons and How to Fix
+
+### The Job Is Still Running
+
+You called `GET /video/jobs/{id}/result` while the job was `queued` or `processing`. The result only exists once the job's `status` is `completed`.
+
+**To fix:**
+1. Poll [`GET /video/jobs/{id}`](/api-reference/video/job-status) every 2 to 5 seconds until `status` is `completed`, then download
+2. Or pass a `webhook_url` when submitting and download when the [`video.completed` event](/guides/video-webhooks) arrives
+
+```python
+import time
+import requests
+
+headers = {"x-api-key": "pk_your_api_key"}
+job_url = "https://api.poof.bg/v1/video/jobs/vid_8f3a1c2e9b7d4a10"
+
+job = requests.get(job_url, headers=headers).json()
+while job["status"] in ("queued", "processing"):
+    time.sleep(3)
+    job = requests.get(job_url, headers=headers).json()
+
+if job["status"] == "completed":
+    video = requests.get(job["result_url"], headers=headers, stream=True)
+```
+
+### The Job Failed
+
+A job whose `status` is `failed` has no result and also returns `409`. Check the job's `error` field for the reason. The credits for a failed job are refunded automatically, so you can fix the input and submit again.
+
+## Need Help?
+
+Contact us at [support@poof.bg](mailto:support@poof.bg) with your `request_id` and the job ID.
