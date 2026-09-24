@@ -61,8 +61,11 @@ Poof is a [background removal API for developers](https://poof.bg/background-rem
   <Accordion title="🔧 Flexible Output">
     PNG with transparency, JPEG with custom backgrounds, WebP for web optimization. Crop, resize, and customize.
   </Accordion>
+  <Accordion title="🎬 Video Background Removal">
+    Remove the background from clips up to 5 minutes long with the same model and a temporal stabiliser, so the matte does not flicker. Transparent WebM or ProRes, green screen MP4, alpha mask or PNG frames, audio preserved. See [Remove Video Background](/api-reference/video/remove-background).
+  </Accordion>
   <Accordion title="📦 Simple Integration">
-    Two endpoints. One API key. SDKs for popular languages and platforms.
+    One API key. A synchronous endpoint for images, an async job API for video, and SDKs for popular languages and platforms.
   </Accordion>
 </AccordionGroup>
 
@@ -103,5 +106,7 @@ await fs.writeFile('result.png', Buffer.from(result.data));
 1. **Upload** — Send your image to the `/remove` endpoint
 2. **Process** — Our AI analyzes and removes the background
 3. **Download** — Receive the processed image in your response
+
+Videos work the same way, except the job runs in the background: `POST /video/remove` accepts the clip and returns a job, you poll it or receive a [webhook](/guides/video-webhooks), then download the result. See [Remove Video Background](/api-reference/video/remove-background).
 
 Ready to get started? [Get your API key →](https://dash.poof.bg)

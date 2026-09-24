@@ -1,0 +1,193 @@
+---
+title: Video webhooks
+description: "Get notified when a video job completes or fails instead of polling"
+---
+
+Video background removal is asynchronous. Instead of [polling the job](/api-reference/video/job-status), pass a `webhook_url` when you [submit the video](/api-reference/video/remove-background) and Poof will `POST` to it once, when the job completes or fails.
+
+```bash
+curl -X POST https://api.poof.bg/v1/video/remove \
+  -H "x-api-key: YOUR_API_KEY" \
+  -F "video_file=@clip.mp4" \
+  -F "webhook_url=https://example.com/hooks/poof"
+```
+
+The URL must use `https`. Webhooks are optional; the job behaves exactly the same without one.
+
+## Payload
+
+The body is the same job object that [Get Video Job](/api-reference/video/job-status) returns, plus an `event` field:
+
+| `event` | When |
+|---|---|
+| `video.completed` | The job finished. `result_url` is set and valid until `expires_at` |
+| `video.failed` | The job failed. `error` says why and the credits have been refunded |
+
+```json
+{
+  "event": "video.completed",
+  "id": "vid_8f3a1c2e9b7d4a10",
+  "status": "completed",
+  "progress": 1,
+  "created_at": "2026-09-24T10:12:00Z",
+  "started_at": "2026-09-24T10:12:04Z",
+  "completed_at": "2026-09-24T10:12:41Z",
+  "duration_seconds": 12.4,
+  "fps": 29.97,
+  "width": 1920,
+  "height": 1080,
+  "frames": 372,
+  "credits": 65,
+  "format": "webm",
+  "result_url": "https://api.poof.bg/v1/video/jobs/vid_8f3a1c2e9b7d4a10/result",
+  "expires_at": "2026-09-25T10:12:41Z",
+  "error": null,
+  "stats": {
+    "output_width": 1920,
+    "output_height": 1080,
+    "processing_seconds": 37.2,
+    "matting_seconds": 28.9,
+    "decode_wait_seconds": 1.4,
+    "encode_wait_seconds": 3.1,
+    "scene_cuts": 2,
+    "output_bytes": 18734211
+  }
+}
+```
+
+A failed job looks the same with `"event": "video.failed"`, `"status": "failed"`, `result_url` and `expires_at` set to `null`, `error` set to `{ "code", "message" }`, and no `stats` object.
+
+## Headers
+
+| Header | Value |
+|---|---|
+| `Content-Type` | `application/json` |
+| `X-Poof-Event` | `video.completed` or `video.failed`, same as `event` in the body |
+| `X-Poof-Job-Id` | The job ID, same as `id` in the body |
+| `X-Poof-Attempt` | Delivery attempt number: `1`, `2` or `3` |
+
+## Delivery and retries
+
+- Poof makes up to **3 attempts**, **10 seconds apart**, with a **10 second timeout** per attempt.
+- Any `2xx` response counts as delivered. Anything else, a timeout or a connection error triggers the next attempt.
+- Each job fires exactly one event (`video.completed` or `video.failed`). Retries resend the same event with a higher `X-Poof-Attempt`.
+- If all three attempts fail, the webhook is dropped. The job itself is unaffected: you can still [poll it](/api-reference/video/job-status) and [download the result](/api-reference/video/download-result) until it expires.
+
+Return `2xx` as soon as you have recorded the event and do the actual work (downloading the result, updating your database) afterwards, so you stay well under the 10 second timeout.
+
+## Verifying a webhook
+
+Webhooks are not signed. Anyone who knows your webhook URL could POST a fake payload to it, so never trust the body on its own. Before acting on an event, **re-fetch the job by ID** from the API with your key:
+
+```
+GET https://api.poof.bg/v1/video/jobs/{id}
+```
+
+Use the `status`, `result_url` and `error` from that response rather than from the payload. The call is free. As an extra check, only accept job IDs you created yourself, and make your handler idempotent: the same event can be delivered more than once if your server responded slowly to an earlier attempt.
+
+## Sample handlers
+
+Both handlers acknowledge immediately, verify the job by re-fetching it, then download the result in the background.
+
+<CodeGroup>
+
+```python Python (Flask)
+import os
+import threading
+
+import requests
+from flask import Flask, request
+
+app = Flask(__name__)
+API = "https://api.poof.bg/v1"
+HEADERS = {"x-api-key": os.environ["POOF_API_KEY"]}
+
+
+def handle_job(job_id: str) -> None:
+    # Verify by re-fetching the job; never trust the webhook body alone.
+    job = requests.get(f"{API}/video/jobs/{job_id}", headers=HEADERS).json()
+
+    if job["status"] == "failed":
+        print(f"{job_id} failed: {job['error']['code']} ({job['credits']} credits refunded)")
+        return
+    if job["status"] != "completed":
+        return  # not a terminal state, ignore
+
+    with requests.get(job["result_url"], headers=HEADERS, stream=True) as r:
+        r.raise_for_status()
+        with open(f"{job_id}.{job['format']}", "wb") as out:
+            for chunk in r.iter_content(chunk_size=1024 * 1024):
+                out.write(chunk)
+    print(f"{job_id} saved")
+
+
+@app.post("/hooks/poof")
+def poof_webhook():
+    event = request.headers.get("X-Poof-Event")
+    job_id = request.headers.get("X-Poof-Job-Id")
+    attempt = request.headers.get("X-Poof-Attempt")
+    print(f"{event} for {job_id} (attempt {attempt})")
+
+    if event not in ("video.completed", "video.failed") or not job_id:
+        return "", 400
+
+    # Acknowledge right away, then do the work off the request thread.
+    threading.Thread(target=handle_job, args=(job_id,), daemon=True).start()
+    return "", 204
+```
+
+```typescript Node (Express)
+import express from 'express';
+import fs from 'node:fs';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
+import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
+
+const app = express();
+app.use(express.json());
+
+const API = 'https://api.poof.bg/v1';
+const headers = { 'x-api-key': process.env.POOF_API_KEY! };
+
+async function handleJob(jobId: string) {
+  // Verify by re-fetching the job; never trust the webhook body alone.
+  const job = await (await fetch(`${API}/video/jobs/${jobId}`, { headers })).json();
+
+  if (job.status === 'failed') {
+    console.log(`${jobId} failed: ${job.error.code} (${job.credits} credits refunded)`);
+    return;
+  }
+  if (job.status !== 'completed') return; // not a terminal state, ignore
+
+  const res = await fetch(job.result_url, { headers });
+  if (!res.ok) throw new Error(await res.text());
+  await pipeline(
+    Readable.fromWeb(res.body as NodeReadableStream),
+    fs.createWriteStream(`${jobId}.${job.format}`)
+  );
+  console.log(`${jobId} saved`);
+}
+
+app.post('/hooks/poof', (req, res) => {
+  const event = req.header('X-Poof-Event');
+  const jobId = req.header('X-Poof-Job-Id');
+  const attempt = req.header('X-Poof-Attempt');
+  console.log(`${event} for ${jobId} (attempt ${attempt})`);
+
+  if ((event !== 'video.completed' && event !== 'video.failed') || !jobId) {
+    return res.sendStatus(400);
+  }
+
+  // Acknowledge right away, then do the work asynchronously.
+  res.sendStatus(204);
+  handleJob(jobId).catch((err) => console.error(`${jobId}:`, err));
+});
+
+app.listen(3000);
+```
+
+</CodeGroup>
+
+## Testing locally
+
+Poof can only reach public `https` URLs, so expose your local server with a tunnel such as `ngrok http 3000` or `cloudflared tunnel --url http://localhost:3000` and use the tunnel's URL as `webhook_url`. Submitting a short clip is the quickest way to trigger a `video.completed` event; the Free plan's credits cover a 20 second trial.

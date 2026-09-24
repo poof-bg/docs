@@ -1,0 +1,58 @@
+---
+title: Video Too Large
+description: "Video exceeds the upload or URL size limit"
+---
+
+**HTTP Status:** 413
+
+```json
+{
+  "code": "video_too_large",
+  "message": "The uploaded video exceeds the 100 MB limit. Send videos up to 500 MB via video_url.",
+  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+  "doc_url": "https://docs.poof.bg/errors/video-too-large"
+}
+```
+
+## Reasons and How to Fix
+
+### Upload Exceeds 100 MB
+
+`video_file` uploads are limited to 100 MB. Nothing is billed.
+
+**To fix, do one of the following:**
+1. **Use `video_url` instead** — host the file somewhere public and let Poof fetch it. The limit via URL is 500 MB.
+2. **Re-encode at a lower bitrate** — most camera and screen-recording files are far larger than they need to be.
+3. **Trim** the clip to the part you need. The [5 minute limit](/errors/video-too-long) applies as well.
+
+### File at `video_url` Exceeds 500 MB
+
+Videos fetched from a URL are limited to 500 MB. Re-encode or trim the source.
+
+### Re-encoding Tips
+
+The output is capped at 1080p, so there is no quality benefit in uploading 4K. Downscale and re-encode with ffmpeg:
+
+```bash
+# Downscale to 1080p and re-encode at a moderate bitrate
+ffmpeg -i large.mov -vf "scale=-2:1080" -c:v libx264 -crf 23 -preset medium -c:a aac small.mp4
+
+# Keep only the first 30 seconds
+ffmpeg -i large.mov -t 30 -c copy trimmed.mov
+```
+
+```python
+import subprocess
+
+subprocess.run([
+    "ffmpeg", "-i", "large.mov",
+    "-vf", "scale=-2:1080",
+    "-c:v", "libx264", "-crf", "23",
+    "-c:a", "aac",
+    "small.mp4",
+], check=True)
+```
+
+## Need Help?
+
+Contact us at [support@poof.bg](mailto:support@poof.bg) with your `request_id`.

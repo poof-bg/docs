@@ -21,6 +21,12 @@ Below is a comprehensive list of all possible error codes you might encounter wh
 | [upstream_error](/errors/upstream-error) | Processing service unreachable, temporarily unavailable, or timed out | 502 / 503 / 504 |
 | [internal_server_error](/errors/internal-server-error) | Unexpected server error | 500 |
 | `not_found` | Unknown path | 404 |
+| [missing_video](/errors/missing-video) | Neither `video_file` nor `video_url` in the request | 400 |
+| [video_too_large](/errors/video-too-large) | Video exceeds 100 MB (upload) or 500 MB (URL) | 413 |
+| [video_too_long](/errors/video-too-long) | Video is longer than 5 minutes | 400 |
+| [invalid_video](/errors/invalid-video) | File could not be decoded as a video | 422 |
+| [job_not_found](/errors/job-not-found) | Unknown video job ID, or the result has expired | 404 |
+| [job_not_ready](/errors/job-not-ready) | The video job has not completed yet | 409 |
 
 <Note>
 `image_too_large` is normally returned as `400` by the API gateway. If an oversized upload reaches the processing service, it is rejected there with `413`. Handle both statuses the same way.
@@ -54,6 +60,6 @@ All errors return a flat JSON body:
 | `doc_url` | Link to the documentation page for this error |
 | `details` | Optional. For `validation_error` an object mapping field names to messages; otherwise a string or omitted |
 
-Every error response also carries an `X-Request-ID` header equal to `request_id`. Failed requests are never billed.
+Every error response also carries an `X-Request-ID` header equal to `request_id`. Failed requests are never billed. Video jobs are charged when they are accepted; if a job later fails, its credits are refunded automatically and the reason is reported in the job's `error` field (see [Get Video Job](/api-reference/video/job-status)).
 
 The `request_id` is useful for support — include it when contacting [support@poof.bg](mailto:support@poof.bg) about an issue.

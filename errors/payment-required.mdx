@@ -18,7 +18,7 @@ description: "Monthly credits are used up"
 
 ### Monthly Credits Used Up
 
-You've used all of your plan's credits for the current billing cycle. Every successful request costs 1 credit; failed requests (including this one) are not billed.
+You've used all of your plan's credits for the current billing cycle. Every successful image request costs 1 credit; failed requests (including this one) are not billed. Video costs 5 credits per second of source video (10 above 30 fps), charged when the job is accepted, so a `/video/remove` request is rejected with this error when the remaining balance does not cover the whole clip.
 
 **To fix, do one of the following:**
 1. **Top up** — buy extra credits at [dash.poof.bg](https://dash.poof.bg) (available on Pro and above). Top-up credits are valid until the end of the current cycle.

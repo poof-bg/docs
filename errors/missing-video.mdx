@@ -1,0 +1,77 @@
+---
+title: Missing Video
+description: "No video file or URL in request"
+---
+
+**HTTP Status:** 400
+
+```json
+{
+  "code": "missing_video",
+  "message": "No video provided. Send multipart/form-data with a 'video_file' part or a 'video_url' field.",
+  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+  "doc_url": "https://docs.poof.bg/errors/missing-video"
+}
+```
+
+## Reasons and How to Fix
+
+### No Video Provided
+
+The `/video/remove` endpoint requires either a `video_file` upload or a `video_url`.
+
+```bash
+# ❌ Wrong - no video
+curl -X POST https://api.poof.bg/v1/video/remove \
+  -H "x-api-key: pk_your_api_key" \
+  -F "format=webm"
+
+# ✅ Correct - upload a file
+curl -X POST https://api.poof.bg/v1/video/remove \
+  -H "x-api-key: pk_your_api_key" \
+  -F "video_file=@clip.mp4"
+
+# ✅ Correct - or give a public https URL
+curl -X POST https://api.poof.bg/v1/video/remove \
+  -H "x-api-key: pk_your_api_key" \
+  -F "video_url=https://example.com/videos/clip.mp4"
+```
+
+### Wrong Content-Type
+
+The request must use `multipart/form-data` encoding, even when you only send `video_url`.
+
+```bash
+# ❌ Wrong - JSON body
+curl -X POST https://api.poof.bg/v1/video/remove \
+  -H "x-api-key: pk_your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{"video_url": "https://example.com/clip.mp4"}'
+
+# ✅ Correct - multipart/form-data
+curl -X POST https://api.poof.bg/v1/video/remove \
+  -H "x-api-key: pk_your_api_key" \
+  -F "video_url=https://example.com/clip.mp4"
+```
+
+### Wrong Field Name
+
+The fields must be named exactly `video_file` or `video_url`. The image endpoint's `image_file` is not accepted here.
+
+```bash
+# ❌ Wrong field name
+-F "video=@clip.mp4"
+-F "file=@clip.mp4"
+-F "image_file=@clip.mp4"
+
+# ✅ Correct
+-F "video_file=@clip.mp4"
+```
+
+### Empty File
+
+An empty `video_file` part (0 bytes) is treated as missing. Check that the file exists and that you are sending its contents (`@clip.mp4`), not the literal path.
+
+## Need Help?
+
+Contact us at [support@poof.bg](mailto:support@poof.bg) with your `request_id`.

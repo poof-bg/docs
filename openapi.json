@@ -520,6 +520,803 @@
         }
       }
     },
+    "/video/remove": {
+      "post": {
+        "operationId": "removeVideoBackground",
+        "summary": "Remove Video Background",
+        "description": "Remove the background from a video. This is an asynchronous endpoint: the video is probed and validated synchronously, then accepted with 202 and processed in the background. Poll GET /video/jobs/{id} (or pass webhook_url) and download the output from GET /video/jobs/{id}/result once the job is completed. Costs 5 credits per second of source video, rounded up (10 credits per second above 30 fps), charged on acceptance and refunded automatically if the job fails. Limits: 5 minutes, 100 MB upload or 500 MB via URL; output is capped at 1080p (longest side 1920 px) and audio is preserved.",
+        "tags": [
+          "Video"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "video_file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "The video file to process (MP4, MOV, WebM, M4V or MKV). Max 100MB. Required unless video_url is given."
+                  },
+                  "video_url": {
+                    "type": "string",
+                    "format": "uri",
+                    "example": "https://example.com/videos/clip.mp4",
+                    "description": "Public https URL of the video to process; Poof downloads it server-side (max 500MB). Alternative to video_file."
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "webm",
+                      "mov",
+                      "mp4",
+                      "mask",
+                      "png"
+                    ],
+                    "default": "webm",
+                    "description": "Output format. 'webm': transparent WebM (VP9 yuva420p, Opus audio). 'mov': transparent QuickTime (ProRes 4444 yuva444p10le, AAC audio). 'mp4': H.264 with the subject composited on bg_color (AAC audio, no alpha). 'mask': grayscale alpha mask as H.264 MP4 (no audio). 'png': ZIP of RGBA PNG frames (no audio)."
+                  },
+                  "bg_color": {
+                    "type": "string",
+                    "default": "#00FF00",
+                    "example": "#00FF00",
+                    "description": "Solid background colour (hex, rgb() or colour name) for format 'mp4'. Ignored for other formats. Defaults to chroma green."
+                  },
+                  "webhook_url": {
+                    "type": "string",
+                    "format": "uri",
+                    "example": "https://example.com/hooks/poof",
+                    "description": "https URL that receives a POST with the job object plus an event field (video.completed or video.failed) when the job finishes. Headers X-Poof-Event, X-Poof-Job-Id and X-Poof-Attempt are set. Up to 3 attempts, 10 seconds apart, 10 second timeout; any 2xx counts as delivered."
+                  },
+                  "stabilize": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Temporal stabilisation of the matte: static edges lean on previous frames so they do not flicker while moving pixels trust the fresh prediction. Scene cuts reset the history. Set false for an independent per-frame matte."
+                  }
+                },
+                "description": "Provide exactly one video input: video_file (upload, max 100MB) or video_url (public https URL, max 500MB)."
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Job accepted. The video has been probed, credits have been charged and processing has been queued.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier for support",
+                "schema": {
+                  "type": "string",
+                  "example": "req_abc123xyz"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VideoJobAccepted"
+                },
+                "example": {
+                  "id": "vid_8f3a1c2e9b7d4a10",
+                  "status": "queued",
+                  "created_at": "2026-09-24T10:12:00Z",
+                  "duration_seconds": 12.4,
+                  "fps": 29.97,
+                  "width": 1920,
+                  "height": 1080,
+                  "frames": 372,
+                  "credits": 65,
+                  "format": "webm",
+                  "status_url": "https://api.poof.bg/v1/video/jobs/vid_8f3a1c2e9b7d4a10",
+                  "result_url": "https://api.poof.bg/v1/video/jobs/vid_8f3a1c2e9b7d4a10/result"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "validation_error": {
+                    "summary": "Validation Error",
+                    "value": {
+                      "code": "validation_error",
+                      "message": "Invalid value for 'format': expected one of webm, mov, mp4, mask, png.",
+                      "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                      "doc_url": "https://docs.poof.bg/errors/validation-error"
+                    }
+                  },
+                  "missing_video": {
+                    "summary": "Missing Video",
+                    "value": {
+                      "code": "missing_video",
+                      "message": "No video provided. Send multipart/form-data with a 'video_file' part or a 'video_url' field.",
+                      "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                      "doc_url": "https://docs.poof.bg/errors/missing-video"
+                    }
+                  },
+                  "video_too_long": {
+                    "summary": "Video Too Long",
+                    "value": {
+                      "code": "video_too_long",
+                      "message": "The video is 7m 12s long. The maximum duration is 5 minutes.",
+                      "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                      "doc_url": "https://docs.poof.bg/errors/video-too-long"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "authentication_error",
+                  "message": "API key missing or not recognised. Send it in the 'x-api-key' header.",
+                  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                  "doc_url": "https://docs.poof.bg/errors/authentication-error"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "payment_required",
+                  "message": "Your plan's monthly credits are used up. Top up, enable Auto Recharge, upgrade, or wait for the cycle reset.",
+                  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                  "doc_url": "https://docs.poof.bg/errors/payment-required"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload Too Large",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "video_too_large",
+                  "message": "The uploaded video exceeds the 100 MB limit. Send videos up to 500 MB via video_url.",
+                  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                  "doc_url": "https://docs.poof.bg/errors/video-too-large"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "invalid_video",
+                  "message": "The file could not be decoded as a video. Send MP4, MOV, WebM, M4V or MKV.",
+                  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                  "doc_url": "https://docs.poof.bg/errors/invalid-video"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "rate_limit_exceeded",
+                  "message": "Rate limit exceeded for your plan. Retry with exponential backoff.",
+                  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                  "doc_url": "https://docs.poof.bg/errors/rate-limit-exceeded"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "internal_server_error": {
+                    "summary": "Internal Server Error",
+                    "value": {
+                      "code": "internal_server_error",
+                      "message": "An unexpected error occurred. Please try again.",
+                      "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                      "doc_url": "https://docs.poof.bg/errors/internal-server-error"
+                    }
+                  },
+                  "processing_failed": {
+                    "summary": "Processing Failed",
+                    "value": {
+                      "code": "processing_failed",
+                      "message": "The video could not be probed or queued. Try a different file or format.",
+                      "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                      "doc_url": "https://docs.poof.bg/errors/processing-failed"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "upstream_error",
+                  "message": "The processing service is unreachable. Retry with exponential backoff.",
+                  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                  "doc_url": "https://docs.poof.bg/errors/upstream-error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "upstream_error",
+                  "message": "The processing service is temporarily unavailable. Retry with exponential backoff.",
+                  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                  "doc_url": "https://docs.poof.bg/errors/upstream-error"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Gateway Timeout",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "upstream_error",
+                  "message": "The processing service timed out. Retry with exponential backoff.",
+                  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                  "doc_url": "https://docs.poof.bg/errors/upstream-error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/video/jobs/{id}": {
+      "get": {
+        "operationId": "getVideoJob",
+        "summary": "Get Video Job",
+        "description": "Returns the current state of a video job: status (queued, processing, completed or failed), progress from 0 to 1, and once completed the result_url and expires_at (24 hours after completion). Polling is free. Poll every 2 to 5 seconds, or pass webhook_url when submitting.",
+        "tags": [
+          "Video"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Video job ID returned by POST /video/remove (starts with vid_).",
+            "schema": {
+              "type": "string",
+              "example": "vid_8f3a1c2e9b7d4a10"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job state",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier for support",
+                "schema": {
+                  "type": "string",
+                  "example": "req_abc123xyz"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VideoJob"
+                },
+                "examples": {
+                  "processing": {
+                    "summary": "Processing",
+                    "value": {
+                      "id": "vid_8f3a1c2e9b7d4a10",
+                      "status": "processing",
+                      "progress": 0.42,
+                      "created_at": "2026-09-24T10:12:00Z",
+                      "started_at": "2026-09-24T10:12:04Z",
+                      "completed_at": null,
+                      "duration_seconds": 12.4,
+                      "fps": 29.97,
+                      "width": 1920,
+                      "height": 1080,
+                      "frames": 372,
+                      "credits": 65,
+                      "format": "webm",
+                      "result_url": null,
+                      "expires_at": null,
+                      "error": null
+                    }
+                  },
+                  "completed": {
+                    "summary": "Completed",
+                    "value": {
+                      "id": "vid_8f3a1c2e9b7d4a10",
+                      "status": "completed",
+                      "progress": 1,
+                      "created_at": "2026-09-24T10:12:00Z",
+                      "started_at": "2026-09-24T10:12:04Z",
+                      "completed_at": "2026-09-24T10:12:41Z",
+                      "duration_seconds": 12.4,
+                      "fps": 29.97,
+                      "width": 1920,
+                      "height": 1080,
+                      "frames": 372,
+                      "credits": 65,
+                      "format": "webm",
+                      "result_url": "https://api.poof.bg/v1/video/jobs/vid_8f3a1c2e9b7d4a10/result",
+                      "expires_at": "2026-09-25T10:12:41Z",
+                      "error": null
+                    }
+                  },
+                  "failed": {
+                    "summary": "Failed",
+                    "value": {
+                      "id": "vid_8f3a1c2e9b7d4a10",
+                      "status": "failed",
+                      "progress": 0.42,
+                      "created_at": "2026-09-24T10:12:00Z",
+                      "started_at": "2026-09-24T10:12:04Z",
+                      "completed_at": "2026-09-24T10:12:20Z",
+                      "duration_seconds": 12.4,
+                      "fps": 29.97,
+                      "width": 1920,
+                      "height": 1080,
+                      "frames": 372,
+                      "credits": 65,
+                      "format": "webm",
+                      "result_url": null,
+                      "expires_at": null,
+                      "error": {
+                        "code": "processing_failed",
+                        "message": "The model or encoder failed on this video."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "authentication_error",
+                  "message": "API key missing or not recognised. Send it in the 'x-api-key' header.",
+                  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                  "doc_url": "https://docs.poof.bg/errors/authentication-error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "job_not_found",
+                  "message": "No video job with id 'vid_8f3a1c2e9b7d4a10' was found, or its result has expired.",
+                  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                  "doc_url": "https://docs.poof.bg/errors/job-not-found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "internal_server_error",
+                  "message": "An unexpected error occurred. Please try again.",
+                  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                  "doc_url": "https://docs.poof.bg/errors/internal-server-error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "upstream_error",
+                  "message": "The processing service is unreachable. Retry with exponential backoff.",
+                  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                  "doc_url": "https://docs.poof.bg/errors/upstream-error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/video/jobs/{id}/result": {
+      "get": {
+        "operationId": "getVideoJobResult",
+        "summary": "Download Video Result",
+        "description": "Streams the output file of a completed video job. Content-Type depends on the requested format (video/webm, video/quicktime, video/mp4 or application/zip) and Content-Disposition is attachment; filename=result.<ext>. Free. Returns 409 job_not_ready while the job is queued or processing (or if it failed) and 404 job_not_found once the result has expired, 24 hours after completion.",
+        "tags": [
+          "Video"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Video job ID returned by POST /video/remove (starts with vid_).",
+            "schema": {
+              "type": "string",
+              "example": "vid_8f3a1c2e9b7d4a10"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The processed video (or ZIP of PNG frames)",
+            "headers": {
+              "Content-Type": {
+                "description": "MIME type of the result: video/webm, video/quicktime, video/mp4 or application/zip",
+                "schema": {
+                  "type": "string",
+                  "example": "video/webm"
+                }
+              },
+              "Content-Disposition": {
+                "description": "attachment; filename=result.<ext> where ext is webm, mov, mp4 or zip",
+                "schema": {
+                  "type": "string",
+                  "example": "attachment; filename=result.webm"
+                }
+              },
+              "X-Request-ID": {
+                "description": "Unique request identifier for support",
+                "schema": {
+                  "type": "string",
+                  "example": "req_abc123xyz"
+                }
+              }
+            },
+            "content": {
+              "video/webm": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "video/quicktime": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "video/mp4": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/zip": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "authentication_error",
+                  "message": "API key missing or not recognised. Send it in the 'x-api-key' header.",
+                  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                  "doc_url": "https://docs.poof.bg/errors/authentication-error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "job_not_found",
+                  "message": "No video job with id 'vid_8f3a1c2e9b7d4a10' was found, or its result has expired.",
+                  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                  "doc_url": "https://docs.poof.bg/errors/job-not-found"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "job_not_ready",
+                  "message": "Job 'vid_8f3a1c2e9b7d4a10' is still processing (42%). Poll the job until its status is 'completed'.",
+                  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                  "doc_url": "https://docs.poof.bg/errors/job-not-ready"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "internal_server_error",
+                  "message": "An unexpected error occurred. Please try again.",
+                  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                  "doc_url": "https://docs.poof.bg/errors/internal-server-error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Unique request identifier, equal to request_id in the body. Include it when contacting support.",
+                "schema": {
+                  "type": "string",
+                  "example": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "upstream_error",
+                  "message": "The processing service is unreachable. Retry with exponential backoff.",
+                  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+                  "doc_url": "https://docs.poof.bg/errors/upstream-error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/me": {
       "get": {
         "operationId": "getMe",
@@ -603,7 +1400,13 @@
               "processing_failed",
               "upstream_error",
               "internal_server_error",
-              "not_found"
+              "not_found",
+              "missing_video",
+              "video_too_large",
+              "video_too_long",
+              "invalid_video",
+              "job_not_found",
+              "job_not_ready"
             ]
           },
           "message": {
@@ -666,6 +1469,285 @@
           }
         },
         "required": ["organizationId", "plan", "maxCredits", "usedCredits"]
+      },
+      "VideoJobAccepted": {
+        "type": "object",
+        "description": "Returned with 202 Accepted by POST /video/remove.",
+        "required": [
+          "id",
+          "status",
+          "created_at",
+          "duration_seconds",
+          "fps",
+          "width",
+          "height",
+          "frames",
+          "credits",
+          "format",
+          "status_url",
+          "result_url"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Job ID, prefixed with vid_",
+            "example": "vid_8f3a1c2e9b7d4a10"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued"
+            ],
+            "description": "Always queued on acceptance",
+            "example": "queued"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the job was accepted",
+            "example": "2026-09-24T10:12:00Z"
+          },
+          "duration_seconds": {
+            "type": "number",
+            "description": "Source video duration in seconds",
+            "example": 12.4
+          },
+          "fps": {
+            "type": "number",
+            "description": "Source frame rate",
+            "example": 29.97
+          },
+          "width": {
+            "type": "integer",
+            "description": "Source video width in pixels",
+            "example": 1920
+          },
+          "height": {
+            "type": "integer",
+            "description": "Source video height in pixels",
+            "example": 1080
+          },
+          "frames": {
+            "type": "integer",
+            "description": "Number of frames in the source video",
+            "example": 372
+          },
+          "credits": {
+            "type": "integer",
+            "description": "Credits charged for this job (5 per second of source video, rounded up; 10 per second above 30 fps). Refunded automatically if the job fails.",
+            "example": 65
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "webm",
+              "mov",
+              "mp4",
+              "mask",
+              "png"
+            ],
+            "description": "Requested output format",
+            "example": "webm"
+          },
+          "status_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the job; GET it to poll for progress",
+            "example": "https://api.poof.bg/v1/video/jobs/vid_8f3a1c2e9b7d4a10"
+          },
+          "result_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the result; GET it once the job is completed",
+            "example": "https://api.poof.bg/v1/video/jobs/vid_8f3a1c2e9b7d4a10/result"
+          }
+        }
+      },
+      "VideoJob": {
+        "type": "object",
+        "description": "A video background removal job, as returned by GET /video/jobs/{id} and delivered to webhook_url (with an additional event field).",
+        "required": [
+          "id",
+          "status",
+          "progress",
+          "created_at",
+          "started_at",
+          "completed_at",
+          "duration_seconds",
+          "fps",
+          "width",
+          "height",
+          "frames",
+          "credits",
+          "format",
+          "result_url",
+          "expires_at",
+          "error"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Job ID, prefixed with vid_",
+            "example": "vid_8f3a1c2e9b7d4a10"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "processing",
+              "completed",
+              "failed"
+            ],
+            "description": "Job state. queued and processing are transient; completed and failed are terminal.",
+            "example": "processing"
+          },
+          "progress": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Fraction of the video processed so far, 0 to 1",
+            "example": 0.42
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the job was accepted",
+            "example": "2026-09-24T10:12:00Z"
+          },
+          "started_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When processing began; null while queued",
+            "example": "2026-09-24T10:12:04Z"
+          },
+          "completed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the job reached completed or failed; null until then",
+            "example": null
+          },
+          "duration_seconds": {
+            "type": "number",
+            "description": "Source video duration in seconds",
+            "example": 12.4
+          },
+          "fps": {
+            "type": "number",
+            "description": "Source frame rate",
+            "example": 29.97
+          },
+          "width": {
+            "type": "integer",
+            "description": "Source video width in pixels",
+            "example": 1920
+          },
+          "height": {
+            "type": "integer",
+            "description": "Source video height in pixels",
+            "example": 1080
+          },
+          "frames": {
+            "type": "integer",
+            "description": "Number of frames in the source video",
+            "example": 372
+          },
+          "credits": {
+            "type": "integer",
+            "description": "Credits charged for this job (5 per second of source video, rounded up; 10 per second above 30 fps). Refunded automatically if the job fails.",
+            "example": 65
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "webm",
+              "mov",
+              "mp4",
+              "mask",
+              "png"
+            ],
+            "description": "Requested output format",
+            "example": "webm"
+          },
+          "status_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the job; GET it to poll for progress",
+            "example": "https://api.poof.bg/v1/video/jobs/vid_8f3a1c2e9b7d4a10"
+          },
+          "result_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri",
+            "description": "URL to download the result; null until the job is completed",
+            "example": null
+          },
+          "expires_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the result is deleted, 24 hours after completion; null until the job is completed",
+            "example": null
+          },
+          "error": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Set when status is failed, null otherwise",
+            "required": [
+              "code",
+              "message"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "description": "Machine-readable error code",
+                "example": "processing_failed"
+              },
+              "message": {
+                "type": "string",
+                "description": "Human-readable description of the failure",
+                "example": "The model or encoder failed on this video."
+              }
+            },
+            "example": null
+          },
+          "stats": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Processing statistics reported once the job has run. Includes output_width and output_height (the output is capped at 1920 px on the longest side; width and height above are the source dimensions). Other keys are informational and may change.",
+            "properties": {
+              "output_width": {
+                "type": "integer",
+                "description": "Output width in pixels",
+                "example": 1920
+              },
+              "output_height": {
+                "type": "integer",
+                "description": "Output height in pixels",
+                "example": 1080
+              }
+            }
+          },
+          "event": {
+            "type": "string",
+            "enum": [
+              "video.completed",
+              "video.failed"
+            ],
+            "description": "Only present in webhook deliveries: which terminal state the job reached"
+          }
+        }
       }
     }
   },
@@ -673,6 +1755,10 @@
     {
       "name": "Image Processing",
       "description": "Background removal and image processing operations"
+    },
+    {
+      "name": "Video",
+      "description": "Asynchronous video background removal"
     },
     {
       "name": "Account",
