@@ -73,6 +73,10 @@ curl https://api.poof.bg/v1/video/jobs/vid_8f3a1c2e9b7d4a10 \
   The requested output format: `webm`, `mov`, `mp4`, `mask` or `png`.
 </ResponseField>
 
+<ResponseField name="status_url" type="string">
+  URL of this job, the same one returned as `status_url` when the job was created.
+</ResponseField>
+
 <ResponseField name="result_url" type="string | null">
   URL to [download the result](/api-reference/video/download-result). `null` until the job is `completed`.
 </ResponseField>
