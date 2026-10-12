@@ -30,8 +30,10 @@
       "post": {
         "operationId": "removeBackground",
         "summary": "Remove Background",
-        "description": "Remove the background from an image or a video. The media type is detected from the file content, never from the field name or extension. Images are processed synchronously and returned directly in the response body (200); each successful image request costs 1 credit regardless of parameters. Videos are accepted with 202 and processed in the background: poll GET /jobs/{id} every 2 to 5 seconds and download the job's result_url (a direct CDN link, valid for 24 hours) once it is completed. Video costs 5 credits per second of source video, rounded up (10 per second above 30 fps), charged on acceptance and refunded automatically if the job fails. Video limits: 5 minutes, 100 MB upload or 500 MB via url, output capped at 1080p, audio preserved except with channels=alpha. GIF and animated WebP files are handled by the image path, so a GIF is still rejected (invalid_image) and an animated WebP uses its first frame; neither is treated as a video. Failed and rejected requests are not billed.",
-        "tags": ["Background Removal"],
+        "description": "Remove the background from an image or a video. The media type is detected from the file's bytes, never from the field name or extension. Images are processed synchronously: the response body is the processed image (200). Videos are processed asynchronously: the request is answered with 202 and a job object; poll GET /jobs/{id} until status is completed, then download result_url. Images cost 1 credit per successful request. Videos cost 5 credits per started second of source video (10 per second above 30 fps), charged on acceptance and refunded automatically if the job fails. Failed requests are not billed. Video limits: 5 minutes, 100 MB upload or 500 MB via url; output is capped at 1080p (longest side 1920 px) and audio is preserved.",
+        "tags": [
+          "Image Processing"
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -42,50 +44,66 @@
                   "file": {
                     "type": "string",
                     "format": "binary",
-                    "description": "The image or video to process. Images: JPEG, PNG or WebP, max 20MB. Videos: MP4, MOV, WebM, M4V or MKV, max 100MB (use url for larger files). Required unless url is given. The legacy names image_file and image_file_b64 are accepted as aliases."
+                    "description": "The image or video file to process. Images: JPEG, PNG, WebP, GIF (first frame), BMP, TIFF, HEIC or AVIF, max 20 MB. Videos: MP4, MOV, WebM, M4V or MKV, max 100 MB (use url for files up to 500 MB). Required unless url or image_file_b64 is given. image_file is accepted as an alias."
                   },
                   "url": {
                     "type": "string",
                     "format": "uri",
                     "example": "https://example.com/photos/product.jpg",
-                    "description": "Public https URL of the image or video to process; Poof downloads it server-side (images max 20MB, videos max 500MB, up to 3 redirects, 15s timeout). URLs pointing at private, loopback or link-local addresses are rejected. Required unless file is given. The legacy name image_url is accepted as an alias."
-                  },
-                  "image_file": {
-                    "type": "string",
-                    "format": "binary",
-                    "description": "Legacy alias for file. Behaves exactly like file, for images and videos alike."
+                    "description": "Public http(s) URL of the image or video to process; Poof fetches it server-side (images max 20 MB, videos max 500 MB, up to 3 redirects, 15s timeout). URLs pointing at private, loopback or link-local addresses are rejected. Alternative to file. image_url is accepted as an alias."
                   },
                   "image_file_b64": {
                     "type": "string",
                     "format": "byte",
-                    "description": "Legacy alias: the image as a base64 string, with or without a data:<mime>;base64, prefix. Max 20MB decoded. Images only."
+                    "description": "The image as a base64 string, with or without a data:<mime>;base64, prefix. Max 20 MB decoded. Images only: a base64-encoded video is rejected with 400 validation_error. Alternative to file."
+                  },
+                  "image_file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Alias of file, kept for remove.bg compatibility."
                   },
                   "image_url": {
                     "type": "string",
                     "format": "uri",
-                    "description": "Legacy alias for url. Behaves exactly like url."
+                    "description": "Alias of url, kept for remove.bg compatibility."
                   },
                   "format": {
                     "type": "string",
-                    "enum": ["png", "jpg", "webp", "webm", "mov", "mp4"],
-                    "description": "Output format. Images: png (default), jpg or webp; for remove.bg compatibility, auto is accepted and treated as png, zip is not supported. Videos: webm (default, VP9, transparent with channels=rgba), mov (ProRes, transparent with channels=rgba) or mp4 (H.264, never transparent: the subject is composited on bg_color). A format from the wrong family for the media is rejected with 400 validation_error listing the valid values."
+                    "enum": [
+                      "png",
+                      "jpg",
+                      "webp",
+                      "webm",
+                      "mov",
+                      "mp4"
+                    ],
+                    "description": "Output format. Images: png (default), jpg or webp. Videos: webm (default; VP9 with alpha, Opus audio), mov (ProRes 4444 with alpha, AAC audio) or mp4 (H.264 without alpha: the subject is composited on bg_color, AAC audio). A format from the other media family is rejected with 400 validation_error listing the valid values. For remove.bg compatibility, auto is accepted and treated as png; zip is not supported."
                   },
                   "channels": {
                     "type": "string",
-                    "enum": ["rgba", "rgb", "alpha"],
+                    "enum": [
+                      "rgba",
+                      "rgb",
+                      "alpha"
+                    ],
                     "default": "rgba",
-                    "description": "Output color channels. Use 'rgba' for transparency, 'rgb' for an opaque output (background filled with bg_color, white by default), or 'alpha' for the grayscale alpha mask only (for video: a grayscale matte video with no audio track)."
+                    "description": "Output color channels. 'rgba': keep transparency (for video, webm and mov carry alpha; mp4 has none and is composited on bg_color). 'rgb': opaque output with the background filled with bg_color (white by default). 'alpha': the grayscale matte only (for video, a grayscale matte video without audio)."
                   },
                   "bg_color": {
                     "type": "string",
-                    "description": "Background color (hex, rgb, or color name) used whenever the output has no alpha channel: channels=rgb, format=jpg and format=mp4. Defaults to white. Ignored for transparent output and alpha masks.",
-                    "example": "#ffffff"
+                    "example": "#ffffff",
+                    "description": "Background color (hex, rgb() or color name) used whenever the output has no alpha: channels 'rgb', format 'jpg' or format 'mp4'. Defaults to white. Ignored when the output keeps transparency."
                   },
                   "size": {
                     "type": "string",
-                    "enum": ["full", "preview", "medium", "hd"],
+                    "enum": [
+                      "full",
+                      "preview",
+                      "medium",
+                      "hd"
+                    ],
                     "default": "full",
-                    "description": "Output size preset (megapixel cap), for images and videos. For video the cap applies to every frame and full is additionally capped at 1080p (longest side 1920 px). For images, ignored when width or height is set. For remove.bg compatibility the aliases auto, 4k and 50MP (treated as full) and small and regular (treated as preview) are also accepted."
+                    "description": "Output size preset. Images: megapixel cap, ignored when width or height is set. Videos: the same presets, with full capped at 1080p (longest side 1920 px). For remove.bg compatibility the aliases auto, 4k and 50MP (treated as full) and small and regular (treated as preview) are also accepted."
                   },
                   "crop": {
                     "oneOf": [
@@ -98,47 +116,51 @@
                       }
                     ],
                     "default": false,
-                    "description": "Image only (400 validation_error when sent with a video). Crop the image to the subject bounds. Pass true/false or an aspect ratio like '1:1', '4:3', '16:9'."
+                    "description": "Images only: a video request with this field is rejected with 400 validation_error naming the field. Crop the image to the subject bounds. Pass true/false or an aspect ratio like '1:1', '4:3', '16:9'."
                   },
                   "padding": {
                     "type": "string",
-                    "description": "Image only (400 validation_error when sent with a video). Padding around the subject when crop is enabled, added to each side as a fraction (e.g. '0.1') or percentage (e.g. '10%') of the subject's size on that axis. Pass one value for both axes, or two comma-separated values as horizontal,vertical (e.g. '10%,7.5%' gives a canvas 120% of subject width and 115% of subject height). Default '10%'.",
+                    "description": "Images only: a video request with this field is rejected with 400 validation_error naming the field. Padding around the subject when crop is enabled, added to each side as a fraction (e.g. '0.1') or percentage (e.g. '10%') of the subject's size on that axis. Pass one value for both axes, or two comma-separated values as horizontal,vertical (e.g. '10%,7.5%' gives a canvas 120% of subject width and 115% of subject height). Default '10%'.",
                     "example": "10%"
                   },
                   "crop_margin": {
                     "type": "string",
                     "example": "10%",
-                    "description": "Image only (400 validation_error when sent with a video). remove.bg-compatible alias for padding, using CSS margin shorthand with one to four space-separated values (e.g. '10%' or '0px 5%'). Percentages map onto padding; a zero pixel margin means a tight crop; other pixel margins cannot be honoured and are ignored. Ignored when padding is set."
+                    "description": "Images only: a video request with this field is rejected with 400 validation_error naming the field. remove.bg-compatible alias for padding, using CSS margin shorthand with one to four space-separated values (e.g. '10%' or '0px 5%'). Percentages map onto padding; a zero pixel margin means a tight crop; other pixel margins cannot be honoured and are ignored. Ignored when padding is set."
                   },
                   "width": {
                     "type": "integer",
                     "minimum": 1,
                     "maximum": 6000,
                     "example": 500,
-                    "description": "Image only (400 validation_error when sent with a video). Output width in pixels (1-6000). On its own, the height follows the image's aspect ratio. Together with height, the image is fitted into a width x height canvas according to fit. The aspect ratio is always preserved (never stretched); smaller images are upscaled unless fit is 'scale-down'. Overrides size."
+                    "description": "Images only: a video request with this field is rejected with 400 validation_error naming the field. Output width in pixels (1-6000). On its own, the height follows the image's aspect ratio. Together with height, the image is fitted into a width x height canvas according to fit. The aspect ratio is always preserved (never stretched); smaller images are upscaled unless fit is 'scale-down'. Overrides size."
                   },
                   "height": {
                     "type": "integer",
                     "minimum": 1,
                     "maximum": 6000,
                     "example": 500,
-                    "description": "Image only (400 validation_error when sent with a video). Output height in pixels (1-6000). On its own, the width follows the image's aspect ratio. Together with width, the image is fitted into a width x height canvas according to fit. The aspect ratio is always preserved (never stretched); smaller images are upscaled unless fit is 'scale-down'. Overrides size."
+                    "description": "Images only: a video request with this field is rejected with 400 validation_error naming the field. Output height in pixels (1-6000). On its own, the width follows the image's aspect ratio. Together with width, the image is fitted into a width x height canvas according to fit. The aspect ratio is always preserved (never stretched); smaller images are upscaled unless fit is 'scale-down'. Overrides size."
                   },
                   "fit": {
                     "type": "string",
-                    "enum": ["contain", "cover", "scale-down"],
+                    "enum": [
+                      "contain",
+                      "cover",
+                      "scale-down"
+                    ],
                     "default": "contain",
-                    "description": "Image only (400 validation_error when sent with a video). How to fit the image into width/height. 'contain' scales the image to fit inside and centres it, filling the remaining area with transparency (or bg_color). 'cover' scales the image to fill the canvas and crops the overflow, keeping the subject centred. 'scale-down' is like 'contain' but never enlarges: a smaller image keeps its native size (centred on the canvas when both dimensions are set). contain and cover only differ when both width and height are set."
+                    "description": "Images only: a video request with this field is rejected with 400 validation_error naming the field. How to fit the image into width/height. 'contain' scales the image to fit inside and centres it, filling the remaining area with transparency (or bg_color). 'cover' scales the image to fill the canvas and crops the overflow, keeping the subject centred. 'scale-down' is like 'contain' but never enlarges: a smaller image keeps its native size (centred on the canvas when both dimensions are set). contain and cover only differ when both width and height are set."
                   }
                 },
-                "description": "Provide exactly one input: file (upload) or url (public https URL). The legacy names image_file, image_file_b64 and image_url are still accepted. If several are sent, file / image_file wins, then image_file_b64, then url / image_url. The media type is detected from the content; crop, padding, crop_margin, width, height and fit are image-only."
+                "description": "Provide exactly one input: file (upload), url (public URL) or image_file_b64 (base64, images only). If several are sent, file wins, then image_file_b64, then url. The remove.bg field names image_file and image_url are accepted as aliases of file and url."
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Successfully processed image (image input only)",
+            "description": "Image processed successfully: the body is the output image",
             "headers": {
               "Content-Type": {
                 "description": "MIME type of the returned image",
@@ -212,7 +234,7 @@
             }
           },
           "202": {
-            "description": "Video accepted (video input only). The video has been probed, credits have been charged and processing has been queued. Poll GET /jobs/{id}.",
+            "description": "Video accepted as a job. The video has been probed, credits have been charged and processing has been queued. Poll status_url.",
             "headers": {
               "X-Request-ID": {
                 "description": "Unique request identifier for support",
@@ -274,7 +296,9 @@
                       "code": "validation_error",
                       "message": "Invalid value for 'format': expected one of png, jpg, webp.",
                       "details": {
-                        "format": ["must be one of: png, jpg, webp"]
+                        "format": [
+                          "must be one of: png, jpg, webp"
+                        ]
                       },
                       "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
                       "doc_url": "https://docs.poof.bg/errors/validation-error"
@@ -284,7 +308,7 @@
                     "summary": "Missing Image",
                     "value": {
                       "code": "missing_image",
-                      "message": "No input provided. Send multipart/form-data with a 'file' part or a 'url' field.",
+                      "message": "No input found. Send multipart/form-data with a 'file' part or a 'url' field.",
                       "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
                       "doc_url": "https://docs.poof.bg/errors/missing-image"
                     }
@@ -299,7 +323,7 @@
                     }
                   },
                   "validation_error_video_field": {
-                    "summary": "Image-only parameter sent with a video",
+                    "summary": "Image-only parameter on a video",
                     "value": {
                       "code": "validation_error",
                       "message": "'crop' is not supported for video.",
@@ -622,14 +646,16 @@
       "get": {
         "operationId": "getJob",
         "summary": "Get Job",
-        "description": "Returns the current state of a job created by POST /remove for a video: status (queued, processing, completed or failed), progress from 0 to 1, and once completed the result_url (a direct CDN link that needs no API key) and expires_at (24 hours after completion, after which the result is deleted). Free; GET requests under /jobs/ are exempt from the per-organisation rate limit. Poll every 2 to 5 seconds.",
-        "tags": ["Background Removal"],
+        "description": "Returns the current state of a job created by POST /remove for a video: status (queued, processing, completed or failed), progress from 0 to 1, and once completed the result_url, a direct download link on the Poof CDN that stays valid until expires_at (24 hours after completion). Polling is free and exempt from your plan's rate limit; poll every 2 to 5 seconds. A failed job carries an error object and its credits are refunded automatically. Unknown or expired jobs return 404 job_not_found.",
+        "tags": [
+          "Jobs"
+        ],
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "description": "Job ID returned by POST /remove for a video (starts with job_).",
+            "description": "Job ID returned by POST /remove (starts with job_).",
             "schema": {
               "type": "string",
               "example": "job_8f3a1c2e9b7d4a10"
@@ -658,11 +684,6 @@
                     "summary": "Processing",
                     "value": {
                       "id": "job_8f3a1c2e9b7d4a10",
-                      "status": "processing",
-                      "progress": 0.42,
-                      "created_at": "2026-10-12T10:12:00Z",
-                      "started_at": "2026-10-12T10:12:04Z",
-                      "completed_at": null,
                       "duration_seconds": 12.4,
                       "fps": 29.97,
                       "width": 1920,
@@ -672,6 +693,11 @@
                       "format": "webm",
                       "channels": "rgba",
                       "status_url": "https://api.poof.bg/v1/jobs/job_8f3a1c2e9b7d4a10",
+                      "status": "processing",
+                      "progress": 0.42,
+                      "created_at": "2026-10-12T10:12:00Z",
+                      "started_at": "2026-10-12T10:12:04Z",
+                      "completed_at": null,
                       "result_url": null,
                       "expires_at": null,
                       "error": null,
@@ -682,11 +708,6 @@
                     "summary": "Completed",
                     "value": {
                       "id": "job_8f3a1c2e9b7d4a10",
-                      "status": "completed",
-                      "progress": 1,
-                      "created_at": "2026-10-12T10:12:00Z",
-                      "started_at": "2026-10-12T10:12:04Z",
-                      "completed_at": "2026-10-12T10:12:41Z",
                       "duration_seconds": 12.4,
                       "fps": 29.97,
                       "width": 1920,
@@ -696,18 +717,18 @@
                       "format": "webm",
                       "channels": "rgba",
                       "status_url": "https://api.poof.bg/v1/jobs/job_8f3a1c2e9b7d4a10",
+                      "status": "completed",
+                      "progress": 1,
+                      "created_at": "2026-10-12T10:12:00Z",
+                      "started_at": "2026-10-12T10:12:04Z",
+                      "completed_at": "2026-10-12T10:12:41Z",
                       "result_url": "https://cdn.poof.bg/1d/jobs/job_8f3a1c2e9b7d4a10/result.webm",
                       "expires_at": "2026-10-13T10:12:41Z",
                       "error": null,
                       "stats": {
                         "output_width": 1920,
                         "output_height": 1080,
-                        "processing_seconds": 37.2,
-                        "matting_seconds": 28.9,
-                        "decode_wait_seconds": 1.4,
-                        "encode_wait_seconds": 3.1,
-                        "scene_cuts": 2,
-                        "output_bytes": 18734211
+                        "processing_seconds": 36.8
                       }
                     }
                   },
@@ -715,11 +736,6 @@
                     "summary": "Failed",
                     "value": {
                       "id": "job_8f3a1c2e9b7d4a10",
-                      "status": "failed",
-                      "progress": 0.42,
-                      "created_at": "2026-10-12T10:12:00Z",
-                      "started_at": "2026-10-12T10:12:04Z",
-                      "completed_at": "2026-10-12T10:12:20Z",
                       "duration_seconds": 12.4,
                       "fps": 29.97,
                       "width": 1920,
@@ -729,6 +745,11 @@
                       "format": "webm",
                       "channels": "rgba",
                       "status_url": "https://api.poof.bg/v1/jobs/job_8f3a1c2e9b7d4a10",
+                      "status": "failed",
+                      "progress": 0.42,
+                      "created_at": "2026-10-12T10:12:00Z",
+                      "started_at": "2026-10-12T10:12:04Z",
+                      "completed_at": "2026-10-12T10:12:20Z",
                       "result_url": null,
                       "expires_at": null,
                       "error": {
@@ -785,7 +806,7 @@
                 },
                 "example": {
                   "code": "job_not_found",
-                  "message": "No job with id 'job_8f3a1c2e9b7d4a10' was found, or it has expired.",
+                  "message": "No job with id 'job_8f3a1c2e9b7d4a10' was found, or its result has expired.",
                   "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
                   "doc_url": "https://docs.poof.bg/errors/job-not-found"
                 }
@@ -850,7 +871,9 @@
         "operationId": "getMe",
         "summary": "Get Account Info",
         "description": "Returns information about the authenticated account including plan details and credit usage. This endpoint is free: it does not consume credits and is not rate limited.",
-        "tags": ["Account"],
+        "tags": [
+          "Account"
+        ],
         "responses": {
           "200": {
             "description": "Account information",
@@ -911,7 +934,11 @@
       "Error": {
         "type": "object",
         "description": "Error body returned by every non-2xx response. The X-Request-ID response header equals request_id.",
-        "required": ["code", "message", "request_id"],
+        "required": [
+          "code",
+          "message",
+          "request_id"
+        ],
         "properties": {
           "code": {
             "type": "string",
@@ -994,11 +1021,16 @@
             "example": 0.9
           }
         },
-        "required": ["organizationId", "plan", "maxCredits", "usedCredits"]
+        "required": [
+          "organizationId",
+          "plan",
+          "maxCredits",
+          "usedCredits"
+        ]
       },
       "Job": {
         "type": "object",
-        "description": "A video background removal job, as returned with 202 by POST /remove and by GET /jobs/{id}.",
+        "description": "A video background-removal job, as returned by POST /remove (202) and GET /jobs/{id}.",
         "required": [
           "id",
           "status",
@@ -1028,7 +1060,12 @@
           },
           "status": {
             "type": "string",
-            "enum": ["queued", "processing", "completed", "failed"],
+            "enum": [
+              "queued",
+              "processing",
+              "completed",
+              "failed"
+            ],
             "description": "Job state. queued and processing are transient; completed and failed are terminal.",
             "example": "processing"
           },
@@ -1043,16 +1080,22 @@
             "type": "string",
             "format": "date-time",
             "description": "When the job was accepted",
-            "example": "2026-10-12T10:12:00Z"
+            "example": "2026-09-24T10:12:00Z"
           },
           "started_at": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time",
             "description": "When processing began; null while queued",
-            "example": "2026-10-12T10:12:04Z"
+            "example": "2026-09-24T10:12:04Z"
           },
           "completed_at": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time",
             "description": "When the job reached completed or failed; null until then",
             "example": null
@@ -1084,18 +1127,26 @@
           },
           "credits": {
             "type": "integer",
-            "description": "Credits charged for this job (5 per second of source video, rounded up; 10 per second above 30 fps). Refunded automatically if the job fails.",
+            "description": "Credits charged for this job (5 per started second of source video; 10 per second above 30 fps). Refunded automatically if the job fails.",
             "example": 65
           },
           "format": {
             "type": "string",
-            "enum": ["webm", "mov", "mp4"],
+            "enum": [
+              "webm",
+              "mov",
+              "mp4"
+            ],
             "description": "Requested output format",
             "example": "webm"
           },
           "channels": {
             "type": "string",
-            "enum": ["rgba", "rgb", "alpha"],
+            "enum": [
+              "rgba",
+              "rgb",
+              "alpha"
+            ],
             "description": "Requested output channels",
             "example": "rgba"
           },
@@ -1106,21 +1157,33 @@
             "example": "https://api.poof.bg/v1/jobs/job_8f3a1c2e9b7d4a10"
           },
           "result_url": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uri",
-            "description": "Direct download URL of the result on the Poof CDN (https://cdn.poof.bg/...). Needs no API key; anyone with the link can download the file until expires_at. Served with Content-Disposition: attachment; filename=result.<ext>. Null until the job is completed.",
+            "description": "Direct download URL of the result on the Poof CDN (https://cdn.poof.bg/...), valid until expires_at; null until the job is completed",
             "example": null
           },
           "expires_at": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time",
-            "description": "When the result is deleted, 24 hours after completion; null until the job is completed. After this time result_url stops working and the job returns 404 job_not_found.",
+            "description": "When the result is deleted, 24 hours after completion; null until the job is completed",
             "example": null
           },
           "error": {
-            "type": ["object", "null"],
+            "type": [
+              "object",
+              "null"
+            ],
             "description": "Set when status is failed, null otherwise",
-            "required": ["code", "message"],
+            "required": [
+              "code",
+              "message"
+            ],
             "properties": {
               "code": {
                 "type": "string",
@@ -1136,9 +1199,12 @@
             "example": null
           },
           "stats": {
-            "type": ["object", "null"],
+            "type": [
+              "object",
+              "null"
+            ],
             "additionalProperties": true,
-            "description": "Processing statistics, set once the job is completed and null otherwise. output_width, output_height and processing_seconds are guaranteed (the output is capped at 1920 px on the longest side, or smaller with size; width and height above are the source dimensions). Other keys are informational and may change.",
+            "description": "Processing statistics, null until the job has run. output_width and output_height are the output dimensions (the output is capped at 1920 px on the longest side; width and height above are the source dimensions) and processing_seconds the wall-clock processing time. Other keys are informational and may change.",
             "properties": {
               "output_width": {
                 "type": "integer",
@@ -1152,11 +1218,10 @@
               },
               "processing_seconds": {
                 "type": "number",
-                "description": "Wall-clock processing time, from started_at to completed_at",
-                "example": 37.2
+                "description": "Wall-clock processing time in seconds",
+                "example": 36.8
               }
-            },
-            "example": null
+            }
           }
         }
       }
@@ -1164,8 +1229,12 @@
   },
   "tags": [
     {
-      "name": "Background Removal",
-      "description": "Background removal for images and video, and the jobs that video processing creates"
+      "name": "Image Processing",
+      "description": "Background removal and image processing operations"
+    },
+    {
+      "name": "Jobs",
+      "description": "Asynchronous jobs: video background removal is accepted with 202 and polled here"
     },
     {
       "name": "Account",
