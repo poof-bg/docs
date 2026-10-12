@@ -18,7 +18,7 @@ description: "File could not be decoded as a video"
 
 ### Unsupported Format
 
-`POST /remove` detects the media type from the file content. MP4, MOV, WebM, M4V and MKV containers are accepted as video. AVI, WMV, FLV, image sequences and audio-only files are rejected. Animated GIF and animated WebP are treated as images (first frame), not as video. Nothing is billed.
+`POST /remove` detects the media type from the file content. MP4, MOV, WebM, M4V and MKV containers are accepted as video. AVI, WMV, FLV, image sequences and audio-only files are rejected. GIF and animated WebP files are handled by the image path, so a GIF is still rejected (`invalid_image`) and an animated WebP uses its first frame; neither is treated as a video. Nothing is billed.
 
 **To fix:**
 - Convert the file to MP4 (H.264) before uploading
@@ -62,7 +62,7 @@ When using `url`, the URL must return the raw video file. A page that embeds a v
 
 ### Wrong Extension
 
-The media type is detected from the file bytes, not the extension or the field name. Renaming a `.gif` to `.mp4` does not make it an MP4: it is still processed as an image.
+The media type is detected from the file bytes, not the extension or the field name. Renaming a `.gif` to `.mp4` does not make it an MP4: it still takes the image path and is rejected with `invalid_image`. Convert it with ffmpeg as shown above.
 
 ## Need Help?
 

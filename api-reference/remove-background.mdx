@@ -9,7 +9,7 @@ The core endpoint for background removal. Send an image or a video; Poof detects
 - **Images** are processed synchronously: the response is `200` with the processed image in the body, exactly as before.
 - **Videos** are processed in the background: the response is `202 Accepted` with a [job](/api-reference/jobs) as JSON. Poll the job and download the result from its `result_url` when it is `completed`. See [Video](#video) below.
 
-Animated GIF and animated WebP are treated as images, not video: the first frame is processed and the response is a still image.
+GIF and animated WebP files are handled by the image path, so a GIF is still rejected (`invalid_image`) and an animated WebP uses its first frame; neither is treated as a video.
 
 Each successful image request costs 1 credit regardless of parameters; failed requests are free. Video costs 5 credits per second of source video (10 above 30 fps), charged when the job is accepted and refunded if it fails. See [Credits](#credits).
 
