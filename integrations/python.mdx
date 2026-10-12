@@ -168,7 +168,7 @@ result = client.remove_background(
 </Note>
 
 
-Every successful call costs 1 credit regardless of options. Failed calls are not billed. Video costs 5 credits per second of source video.
+Every successful call costs 1 credit regardless of options. Failed calls are not billed. Video, which the SDK does not support yet, costs 5 credits per second of source video.
 
 ## Result Object
 
@@ -335,7 +335,7 @@ def process_image(client: Poof, path: str) -> RemoveBackgroundResult:
 ## Video
 
 <Note>
-Video background removal is API-only until the next SDK release: the SDK has no video methods yet. Call [`POST /video/remove`](/api-reference/video/remove-background) directly with `requests` or `httpx`, poll the job, and download the result. The API reference has a complete Python example with a polling loop.
+Video background removal is API-only until the next SDK release: the SDK has no video methods yet, and `remove_background()` only sends images. Call [`POST /remove`](/api-reference/remove-background#video) directly with `requests` or `httpx`, sending the clip as `file`, then poll [`GET /jobs/{id}`](/api-reference/jobs) and download the job's `result_url`. The API reference has a complete Python example with a polling loop.
 </Note>
 
 ## Links

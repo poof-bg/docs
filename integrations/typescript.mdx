@@ -169,7 +169,7 @@ const result = await poof.removeBackground(image, {
 </Note>
 
 
-Every successful call costs 1 credit regardless of options. Failed calls are not billed. Video costs 5 credits per second of source video.
+Every successful call costs 1 credit regardless of options. Failed calls are not billed. Video, which the SDK does not support yet, costs 5 credits per second of source video.
 
 ## Result and Metadata
 
@@ -418,7 +418,7 @@ export async function POST(request: NextRequest) {
 ## Video
 
 <Note>
-Video background removal is API-only until the next SDK release: the SDK has no video methods yet. Call [`POST /video/remove`](/api-reference/video/remove-background) directly with `fetch`, poll the job, and download the result. The API reference has a complete TypeScript example with a polling loop.
+Video background removal is API-only until the next SDK release: the SDK has no video methods yet, and `removeBackground()` only sends images. Call [`POST /remove`](/api-reference/remove-background#video) directly with `fetch`, sending the clip as `file`, then poll [`GET /jobs/{id}`](/api-reference/jobs) and download the job's `result_url`. The API reference has a complete TypeScript example with a polling loop.
 </Note>
 
 ## Links

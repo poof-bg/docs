@@ -98,11 +98,11 @@ Your output file now contains the image with the background removed:
   <Card title="Explore Integrations" icon="puzzle-piece" href="/integrations/overview">
     Use our official SDKs and integrations
   </Card>
-  <Card title="Remove Video Backgrounds" icon="video" href="/api-reference/video/remove-background">
-    Transparent WebM, ProRes or green screen MP4 from clips up to 5 minutes. Works best on a clearly separated subject
+  <Card title="Remove Video Backgrounds" icon="video" href="/api-reference/remove-background#video">
+    Transparent WebM, ProRes or MP4 on a solid colour from clips up to 5 minutes. Works best on a clearly separated subject
   </Card>
-  <Card title="Video Webhooks" icon="bell" href="/guides/video-webhooks">
-    Get notified when a video job finishes instead of polling
+  <Card title="Poll a Job" icon="rotate" href="/api-reference/jobs">
+    Check a video job's progress and download its result
   </Card>
 </CardGroup>
 
@@ -144,14 +144,18 @@ curl -X POST https://api.poof.bg/v1/remove \
 
 ## Video
 
-The same API removes backgrounds from video. Submit a clip, poll the job (or use a [webhook](/guides/video-webhooks)), then download the result. Video costs 5 credits per second of source video.
+The same endpoint removes backgrounds from video; Poof detects the media type from the file content. A video is accepted with `202` and a job: poll the job every few seconds, then download its `result_url`. Video costs 5 credits per second of source video.
 
 ```bash
-# Submit a clip; the response is a job with status_url and result_url
-curl -X POST https://api.poof.bg/v1/video/remove \
+# Submit a clip; the response is a job with an "id" and a "status_url"
+curl -X POST https://api.poof.bg/v1/remove \
   -H "x-api-key: YOUR_API_KEY" \
-  -F "video_file=@clip.mp4" \
+  -F "file=@clip.mp4" \
   -F "format=webm"
+
+# Poll until "status" is "completed", then download "result_url"
+curl https://api.poof.bg/v1/jobs/job_8f3a1c2e9b7d4a10 \
+  -H "x-api-key: YOUR_API_KEY"
 ```
 
-See [Remove Video Background](/api-reference/video/remove-background) for the full flow in cURL, Python and TypeScript.
+See [Video](/api-reference/remove-background#video) for the full flow in cURL, Python and TypeScript.

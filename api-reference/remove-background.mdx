@@ -1,55 +1,75 @@
 ---
 title: Remove Background
-description: "Remove the background from an image"
+description: "Remove the background from an image or a video"
 api: "POST /remove"
 ---
 
-The core endpoint for background removal. Send an image, get back a processed image with the background removed.
+The core endpoint for background removal. Send an image or a video; Poof detects the media type from the file content, never from the field name, the file name or the `Content-Type` of the part.
 
-Each successful request costs 1 credit regardless of parameters; failed requests are free. [Video](/api-reference/video/remove-background) costs 5 credits per second of source video.
+- **Images** are processed synchronously: the response is `200` with the processed image in the body, exactly as before.
+- **Videos** are processed in the background: the response is `202 Accepted` with a [job](/api-reference/jobs) as JSON. Poll the job and download the result from its `result_url` when it is `completed`. See [Video](#video) below.
+
+Animated GIF and animated WebP are treated as images, not video: the first frame is processed and the response is a still image.
+
+Each successful image request costs 1 credit regardless of parameters; failed requests are free. Video costs 5 credits per second of source video (10 above 30 fps), charged when the job is accepted and refunded if it fails. See [Credits](#credits).
 
 ## Request
 
-<ParamField body="image_file" type="file">
-  The image file to process. Supports JPEG, PNG, and WebP formats. Maximum size: 20MB. Required unless `image_file_b64` or `image_url` is given. When several inputs are sent, `image_file` wins, then `image_file_b64`, then `image_url`.
+Send `multipart/form-data` with exactly one input: `file` or `url`. The other parameters are optional form fields. The same parameter names work for images and videos; each field below says how the accepted values differ.
+
+<ParamField body="file" type="file">
+  The image or video to process. Images: JPEG, PNG or WebP, up to 20 MB. Videos: MP4, MOV, WebM, M4V or MKV, up to 100 MB (use `url` for larger files). Required unless `url` is given.
+
+  The legacy names `image_file` (a file part) and `image_file_b64` (a base64 string, with or without a `data:image/...;base64,` prefix, images only) are still accepted and behave exactly like `file`. When several inputs are sent, `file` / `image_file` wins, then `image_file_b64`, then `url`. The image examples on this page still use `image_file`; it is equivalent.
 </ParamField>
 
-<ParamField body="image_file_b64" type="string">
-  The image as a base64 string, with or without a `data:image/...;base64,` prefix. Same formats and 20MB limit (after decoding) as `image_file`.
+<ParamField body="url" type="string">
+  A public `https` URL to fetch the media from. Poof downloads it server-side (up to 3 redirects, 15 second timeout). Images up to 20 MB, videos up to 500 MB. URLs that resolve to private or internal addresses are rejected with `validation_error`. Required unless `file` is given.
+
+  The legacy name `image_url` is still accepted and behaves exactly like `url`.
 </ParamField>
 
-<ParamField body="image_url" type="string">
-  A public `http(s)` URL to fetch the image from. Poof downloads it server-side (up to 3 redirects, 15 second timeout, 20MB). URLs that resolve to private or internal addresses are rejected with `validation_error`.
-</ParamField>
+<ParamField body="format" type="string">
+  Output format. The valid values depend on the media; sending an image format for a video (or the other way round) returns `400 validation_error` listing the valid values.
 
-<ParamField body="format" type="string" default="png">
-  Output image format.
+  **Images** (default `png`):
   - `png` — Lossless with transparency support
   - `jpg` — Smaller file size, no transparency
   - `webp` — Best compression with transparency
+
+  **Videos** (default `webm`):
+  - `webm` — VP9 WebM, transparent with `channels=rgba`. Best for the web
+  - `mov` — ProRes QuickTime, transparent with `channels=rgba`. Best for video editors
+  - `mp4` — H.264 MP4, never transparent: the subject is composited on `bg_color`
+
+  See the [video formats table](#output-formats) for codecs, alpha and audio per combination.
 </ParamField>
 
 <ParamField body="channels" type="string" default="rgba">
-  Output color channels.
+  Output color channels. Same values for images and videos.
   - `rgba` — Include alpha channel (transparency)
   - `rgb` — Opaque output, uses `bg_color` for background (white by default)
-  - `alpha` — Grayscale alpha mask only: white foreground, black background
+  - `alpha` — Grayscale alpha mask only: white foreground, black background. For video this is a grayscale matte video with no audio track
 </ParamField>
 
-<ParamField body="bg_color" type="string">
-  Background color when `channels` is `rgb` or `rgba`. Accepts:
+<ParamField body="bg_color" type="string" default="white">
+  Background colour used whenever the output has no alpha channel: `channels=rgb`, `format=jpg` and `format=mp4`. Ignored when the output is transparent or an alpha mask. Defaults to white. Accepts:
   - Hex: `#ffffff`, `#fff`
   - RGB: `rgb(255, 255, 255)`
-  - Named: `white`, `black`, `red`
+  - Named: `white`, `black`, `green`
 </ParamField>
 
 <ParamField body="size" type="string" default="full">
-  Output image size preset (megapixel cap). Ignored when `width` or `height` is set.
-  - `full` — Original resolution
+  Output size preset (megapixel cap). Same presets for images and videos; for video the cap applies to every frame and `full` is additionally capped at 1080p (longest side 1920 px, aspect ratio kept). For images, ignored when `width` or `height` is set.
+  - `full` — Original resolution (video: capped at 1080p)
   - `preview` — up to 0.25 megapixels
   - `medium` — up to 1.5 megapixels
   - `hd` — up to 4 megapixels
 </ParamField>
+
+<Note>
+`crop`, `padding`, `crop_margin`, `width`, `height` and `fit` below are **image-only**. Sending any of them with a video returns `400 validation_error` with `details.field` naming the parameter.
+</Note>
 
 <ParamField body="crop" type="boolean | string" default="false">
   Crop the output to the subject bounds, removing empty space around the subject.
@@ -104,7 +124,9 @@ Each successful request costs 1 credit regardless of parameters; failed requests
 
 ## Response
 
-The API returns the processed image directly in the response body. Check the response headers for metadata:
+### Images
+
+For an image the API returns `200` with the processed image directly in the response body. Check the response headers for metadata:
 
 | Header | Description |
 |--------|-------------|
@@ -115,6 +137,38 @@ The API returns the processed image directly in the response body. Check the res
 | `X-Image-Height` | Output image height in pixels |
 | `X-Matte-Confidence` | Confidence in the alpha matte, `0`–`1`. `1` means a fully decisive mask; lower values mean the model hedged. Heuristic, not a calibrated probability |
 | `X-Matte-Ambiguous-Ratio` | Fraction of pixels with alpha between 0.1 and 0.9, `0`–`1`. High values indicate large uncertain regions — useful for flagging results for manual review |
+
+### Videos
+
+For a video the API returns `202 Accepted` with `Content-Type: application/json` and a job object. The video is probed before it is accepted, so the response already tells you the duration, frame count and the credit charge. Poll `status_url` until `status` is `completed`, then download `result_url`. The full job object is described on [Get Job](/api-reference/jobs); the `202` always has `status: "queued"`, `progress: 0` and `result_url: null`.
+
+<ResponseExample>
+
+```json 202 Accepted (video)
+{
+  "id": "job_8f3a1c2e9b7d4a10",
+  "status": "queued",
+  "progress": 0,
+  "created_at": "2026-10-12T10:12:00Z",
+  "started_at": null,
+  "completed_at": null,
+  "duration_seconds": 12.4,
+  "fps": 29.97,
+  "width": 1920,
+  "height": 1080,
+  "frames": 372,
+  "credits": 65,
+  "format": "webm",
+  "channels": "rgba",
+  "status_url": "https://api.poof.bg/v1/jobs/job_8f3a1c2e9b7d4a10",
+  "result_url": null,
+  "expires_at": null,
+  "error": null,
+  "stats": null
+}
+```
+
+</ResponseExample>
 
 ## Examples
 
@@ -394,35 +448,328 @@ const result = await poof.removeBackground(image, { format: 'webp' });
 
 </CodeGroup>
 
+## Video
+
+Send a video clip to the same endpoint and it is accepted with `202 Accepted` and processed in the background. The same matting model that powers image removal is run on every frame, with a motion-aware temporal stabiliser so the matte does not flicker between frames. Use it for product clips, talking-head videos, social content, overlays, and anything else that needs a transparent or solid-background video.
+
+The flow is: submit → poll [`GET /jobs/{id}`](/api-reference/jobs) every 2 to 5 seconds until `status` is `completed` (or `failed`) → download `result_url`. `result_url` is a direct CDN link that needs no API key and stays valid for 24 hours (`expires_at`).
+
+<Note>
+The [Python](/integrations/python) and [TypeScript](/integrations/typescript) SDKs do not support video yet. Until the next SDK release, call the API directly as shown in the [examples](#video-examples) below.
+</Note>
+
+### Limits
+
+| Limit | Value |
+|---|---|
+| Duration | Up to 5 minutes |
+| Upload size | 100 MB via `file`, 500 MB via `url` |
+| Input formats | MP4, MOV, WebM, M4V, MKV |
+| Output resolution | Source resolution, capped at 1080p (longest side 1920 px, aspect ratio kept); smaller with `size` |
+| Audio | Preserved, except with `channels=alpha` (no audio track) |
+
+### Output formats
+
+`format` picks the container and codec, `channels` picks what the pixels contain. Every combination is valid:
+
+| `format` | `channels=rgba` | `channels=rgb` | `channels=alpha` | Audio | `Content-Type` |
+|---|---|---|---|---|---|
+| `webm` | VP9 `yuva420p`, transparent | VP9 `yuv420p`, subject on `bg_color` | VP9 grayscale matte | Opus (none for `alpha`) | `video/webm` |
+| `mov` | ProRes 4444 `yuva444p10le`, transparent | ProRes 422 `yuv422p10le`, subject on `bg_color` | ProRes grayscale matte | AAC (none for `alpha`) | `video/quicktime` |
+| `mp4` | H.264 `yuv420p`, subject on `bg_color` (MP4 has no alpha, so this equals `rgb`) | H.264 `yuv420p`, subject on `bg_color` | H.264 grayscale matte | AAC (none for `alpha`) | `video/mp4` |
+
+- `channels=alpha` is the matte as luma: white foreground, black background. Use it with `format=mp4` for the smallest, most widely decodable matte.
+- `bg_color` defaults to white. Pass `bg_color=#00ff00` for a chroma-key green screen.
+- Frame rate, duration and aspect ratio are preserved. Output resolution is the source resolution capped at 1920 × 1080 (longest side 1920 px), or smaller with `size`.
+- The result file is served with `Content-Disposition: attachment; filename=result.<ext>`.
+
+### What to expect
+
+The model extracts the main salient subject or subjects in each frame, the same way it does for images. Best results come from a clearly separated subject, steady lighting and footage at or below 1080p. Known limitations:
+
+- **Crowds and partial subjects.** Crowds, people only partially visible at the frame edge, and small background objects may be dropped from the matte.
+- **Overlays.** Burned-in captions, logos and watermarks are often kept as foreground. Strip overlays before processing and add them back afterwards.
+- **Touching objects.** Objects that touch or overlap the subject (poles, laptop edges, hand-held items) can be included in some frames and not others.
+- **Black or white frames.** Fully black or fully white frames, such as fade-ins and fade-outs, produce an empty matte by design.
+- **Fine edges and motion.** Hair and fur edges are soft. The temporal stabiliser reduces edge flicker on static parts of the frame but does not eliminate it on fast motion.
+
+### Credits
+
+| Source frame rate | Cost |
+|---|---|
+| Up to 30 fps | 5 credits per second of source video, rounded up to the whole second |
+| Above 30 fps | 10 credits per second of source video, rounded up to the whole second |
+
+The credit charge does not depend on `format`, `channels`, `size` or resolution. A 12.4 second clip at 29.97 fps is billed as 13 seconds, so 65 credits. One credit equals one image or 0.2 seconds of video.
+
+Credits are charged when the job is accepted, and the `202` response tells you the exact amount in `credits`. If the job fails, the credits are refunded automatically. Rejected submissions (`4xx` errors) are never billed. Polling the job and downloading the result are free.
+
+### Video examples
+
+Submit a clip with `file`, poll the job every few seconds, and download the transparent WebM from `result_url`:
+
+<CodeGroup>
+
+```bash cURL
+# 1. Submit the video (returns the job as JSON; note the "id")
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "x-api-key: YOUR_API_KEY" \
+  -F "file=@clip.mp4" \
+  -F "format=webm"
+
+# 2. Poll the job every few seconds until "status" is "completed" (or "failed")
+curl https://api.poof.bg/v1/jobs/job_8f3a1c2e9b7d4a10 \
+  -H "x-api-key: YOUR_API_KEY"
+
+# 3. Download the result from "result_url" (a public CDN link, no API key needed)
+curl -o clip-nobg.webm \
+  https://cdn.poof.bg/1d/jobs/job_8f3a1c2e9b7d4a10/result.webm
+```
+
+```python Python
+import time
+import requests
+
+API = "https://api.poof.bg/v1"
+headers = {"x-api-key": "YOUR_API_KEY"}
+
+# 1. Submit the video
+with open("clip.mp4", "rb") as f:
+    r = requests.post(
+        f"{API}/remove",
+        headers=headers,
+        files={"file": f},
+        data={"format": "webm"},
+    )
+r.raise_for_status()
+job = r.json()
+print(f"Job {job['id']}: {job['duration_seconds']} s, {job['credits']} credits")
+
+# 2. Poll every few seconds until the job finishes
+while job["status"] not in ("completed", "failed"):
+    time.sleep(3)
+    r = requests.get(f"{API}/jobs/{job['id']}", headers=headers)
+    r.raise_for_status()
+    job = r.json()
+    print(f"{job['status']} {job['progress']:.0%}")
+
+if job["status"] == "failed":
+    raise RuntimeError(f"{job['error']['code']}: {job['error']['message']}")
+
+# 3. Download the result (a public CDN link, no API key needed)
+with requests.get(job["result_url"], stream=True) as r:
+    r.raise_for_status()
+    with open("clip-nobg.webm", "wb") as out:
+        for chunk in r.iter_content(chunk_size=1024 * 1024):
+            out.write(chunk)
+```
+
+```typescript TypeScript
+import fs from 'node:fs';
+import { readFile } from 'node:fs/promises';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
+import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
+
+const API = 'https://api.poof.bg/v1';
+const headers = { 'x-api-key': 'YOUR_API_KEY' };
+
+// 1. Submit the video
+const form = new FormData();
+form.append('file', new Blob([await readFile('clip.mp4')]), 'clip.mp4');
+form.append('format', 'webm');
+
+const submit = await fetch(`${API}/remove`, { method: 'POST', headers, body: form });
+if (!submit.ok) throw new Error(await submit.text());
+let job = await submit.json();
+console.log(`Job ${job.id}: ${job.duration_seconds} s, ${job.credits} credits`);
+
+// 2. Poll every few seconds until the job finishes
+while (job.status !== 'completed' && job.status !== 'failed') {
+  await new Promise((r) => setTimeout(r, 3000));
+  const res = await fetch(`${API}/jobs/${job.id}`, { headers });
+  if (!res.ok) throw new Error(await res.text());
+  job = await res.json();
+  console.log(job.status, `${Math.round(job.progress * 100)}%`);
+}
+if (job.status === 'failed') throw new Error(`${job.error.code}: ${job.error.message}`);
+
+// 3. Stream the result to disk (a public CDN link, no API key needed)
+const result = await fetch(job.result_url);
+if (!result.ok) throw new Error(await result.text());
+await pipeline(
+  Readable.fromWeb(result.body as NodeReadableStream),
+  fs.createWriteStream('clip-nobg.webm')
+);
+```
+
+</CodeGroup>
+
+The examples below only show the submit step. Poll and download exactly as above.
+
+#### Opaque MP4 on a Solid Colour
+
+An H.264 MP4 with the subject composited on `bg_color`. The default is white; pass `bg_color=#00ff00` for a green screen:
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "x-api-key: YOUR_API_KEY" \
+  -F "file=@clip.mp4" \
+  -F "format=mp4" \
+  -F "bg_color=#00ff00"
+```
+
+```python Python
+with open("clip.mp4", "rb") as f:
+    job = requests.post(
+        f"{API}/remove",
+        headers=headers,
+        files={"file": f},
+        data={"format": "mp4", "bg_color": "#00ff00"},
+    ).json()
+```
+
+```typescript TypeScript
+form.append('file', new Blob([await readFile('clip.mp4')]), 'clip.mp4');
+form.append('format', 'mp4');
+form.append('bg_color', '#00ff00');
+```
+
+</CodeGroup>
+
+#### ProRes for Video Editors
+
+A transparent QuickTime file (ProRes 4444) that drops straight into Premiere, Final Cut, DaVinci Resolve or After Effects:
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "x-api-key: YOUR_API_KEY" \
+  -F "file=@clip.mp4" \
+  -F "format=mov"
+```
+
+```python Python
+with open("clip.mp4", "rb") as f:
+    job = requests.post(
+        f"{API}/remove",
+        headers=headers,
+        files={"file": f},
+        data={"format": "mov"},
+    ).json()
+```
+
+```typescript TypeScript
+form.append('file', new Blob([await readFile('clip.mp4')]), 'clip.mp4');
+form.append('format', 'mov');
+```
+
+</CodeGroup>
+
+#### Alpha Matte Video
+
+Get just the grayscale matte (white foreground, black background) as a small MP4 for custom compositing pipelines. There is no audio track:
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "x-api-key: YOUR_API_KEY" \
+  -F "file=@clip.mp4" \
+  -F "format=mp4" \
+  -F "channels=alpha"
+```
+
+```python Python
+with open("clip.mp4", "rb") as f:
+    job = requests.post(
+        f"{API}/remove",
+        headers=headers,
+        files={"file": f},
+        data={"format": "mp4", "channels": "alpha"},
+    ).json()
+```
+
+```typescript TypeScript
+form.append('file', new Blob([await readFile('clip.mp4')]), 'clip.mp4');
+form.append('format', 'mp4');
+form.append('channels', 'alpha');
+```
+
+</CodeGroup>
+
+#### From a URL
+
+Let Poof fetch the video from a public `https` URL (up to 500 MB) instead of uploading it:
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "x-api-key: YOUR_API_KEY" \
+  -F "url=https://example.com/videos/clip.mp4" \
+  -F "format=webm"
+```
+
+```python Python
+job = requests.post(
+    f"{API}/remove",
+    headers=headers,
+    data={"url": "https://example.com/videos/clip.mp4", "format": "webm"},
+).json()
+```
+
+```typescript TypeScript
+form.append('url', 'https://example.com/videos/clip.mp4');
+form.append('format', 'webm');
+```
+
+</CodeGroup>
+
 ## Error Responses
 
-All errors return a flat JSON body (`{ "code", "message", "details"?, "request_id", "doc_url" }`) and carry an `X-Request-ID` header. Failed requests are not billed.
+All errors return a flat JSON body (`{ "code", "message", "details"?, "request_id", "doc_url" }`) and carry an `X-Request-ID` header. Failed and rejected requests are not billed.
 
 | Status | Code | Description |
 |--------|------|-------------|
-| 400 | `validation_error` | Invalid parameter value or non-multipart body |
-| 400 | `missing_image` | No `image_file` part provided |
+| 400 | `validation_error` | Invalid parameter value (for example a `format` from the wrong media family, or an image-only parameter sent with a video), or non-multipart body |
+| 400 | `missing_image` | No `file`, `url` or legacy `image_*` input provided |
 | 400 / 413 | `image_too_large` | Image exceeds the 20 MB limit (413 when rejected by the processing service) |
+| 400 | `video_too_long` | Video is longer than 5 minutes |
 | 401 | `authentication_error` | `x-api-key` missing or not recognised |
-| 402 | `payment_required` | Monthly credits used up |
+| 402 | `payment_required` | Monthly credits used up, or not enough left to cover the whole video |
 | 403 | `permission_denied` | Endpoint or feature not included in your plan |
+| 413 | `video_too_large` | Video upload exceeds 100 MB, or the file at `url` exceeds 500 MB |
 | 422 | `invalid_image` | File could not be decoded as PNG, JPEG or WebP |
+| 422 | `invalid_video` | File was detected as a video but could not be decoded |
 | 429 | `rate_limit_exceeded` | Per-plan requests-per-minute limit or global per-IP limit hit |
 | 500 | `processing_failed` | The model or encoder failed on this image |
 | 500 | `internal_server_error` | Unexpected server error, retry later |
 | 502 / 503 / 504 | `upstream_error` | Processing service unreachable, unavailable, or timed out; retry with backoff |
 
+A video that is accepted but fails during processing does not produce an error response: the job ends with `status: "failed"` and an `error` object, and its credits are refunded automatically. See [Get Job](/api-reference/jobs).
+
 See [API Error Codes](/errors/list) for detailed troubleshooting.
 
 <RequestExample>
 
-```bash cURL
+```bash Image
 curl -X POST https://api.poof.bg/v1/remove \
   -H "x-api-key: YOUR_API_KEY" \
-  -F "image_file=@photo.jpg" \
+  -F "file=@photo.jpg" \
   -F "format=png" \
   -F "size=full" \
   -o result.png
+```
+
+```bash Video
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "x-api-key: YOUR_API_KEY" \
+  -F "file=@clip.mp4" \
+  -F "format=webm"
 ```
 
 </RequestExample>

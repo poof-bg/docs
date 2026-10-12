@@ -1,6 +1,6 @@
 ---
 title: Missing Image
-description: "No image file in request"
+description: "No file or URL in request"
 ---
 
 **HTTP Status:** 400
@@ -8,7 +8,7 @@ description: "No image file in request"
 ```json
 {
   "code": "missing_image",
-  "message": "No image_file part found. Send multipart/form-data with an 'image_file' field.",
+  "message": "No input provided. Send multipart/form-data with a 'file' part or a 'url' field.",
   "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
   "doc_url": "https://docs.poof.bg/errors/missing-image"
 }
@@ -16,49 +16,61 @@ description: "No image file in request"
 
 ## Reasons and How to Fix
 
-### No Image File Provided
+### No File or URL Provided
 
-The `/remove` endpoint requires an image file in the `image_file` field.
+The `/remove` endpoint requires exactly one input: a `file` part (image or video) or a `url` field. The legacy names `image_file`, `image_file_b64` and `image_url` are still accepted and mean the same thing. This error is returned whenever none of them is present, for images and videos alike.
 
 ```bash
 # ❌ Wrong - no image
 curl -X POST https://api.poof.bg/v1/remove \
   -H "x-api-key: pk_your_api_key"
 
-# ✅ Correct
+# ✅ Correct - upload a file
 curl -X POST https://api.poof.bg/v1/remove \
   -H "x-api-key: pk_your_api_key" \
-  -F "image_file=@photo.jpg"
+  -F "file=@photo.jpg"
+
+# ✅ Correct - or give a public https URL
+curl -X POST https://api.poof.bg/v1/remove \
+  -H "x-api-key: pk_your_api_key" \
+  -F "url=https://example.com/photo.jpg"
 ```
 
 ### Wrong Content-Type
 
-The request must use `multipart/form-data` encoding.
+The request must use `multipart/form-data` encoding, even when you only send `url`.
 
 ```bash
 # ❌ Wrong - JSON body
 curl -X POST https://api.poof.bg/v1/remove \
   -H "Content-Type: application/json" \
-  -d '{"image": "..."}'
+  -d '{"url": "https://example.com/photo.jpg"}'
 
 # ✅ Correct - multipart/form-data
 curl -X POST https://api.poof.bg/v1/remove \
   -H "x-api-key: pk_your_api_key" \
-  -F "image_file=@photo.jpg"
+  -F "url=https://example.com/photo.jpg"
 ```
 
 ### Wrong Field Name
 
-The field must be named exactly `image_file`.
+The file part must be named `file` (or the legacy `image_file`); a URL goes in `url` (or the legacy `image_url`).
 
 ```bash
 # ❌ Wrong field name
 -F "image=@photo.jpg"
--F "file=@photo.jpg"
+-F "video=@clip.mp4"
+-F "photo_url=https://example.com/photo.jpg"
 
 # ✅ Correct
+-F "file=@photo.jpg"
 -F "image_file=@photo.jpg"
+-F "url=https://example.com/photo.jpg"
 ```
+
+### Empty File
+
+An empty `file` part (0 bytes) is treated as missing. Check that the file exists and that you are sending its contents (`@photo.jpg`), not the literal path.
 
 ## SDK Examples
 

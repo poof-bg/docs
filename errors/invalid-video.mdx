@@ -18,7 +18,7 @@ description: "File could not be decoded as a video"
 
 ### Unsupported Format
 
-MP4, MOV, WebM, M4V and MKV containers are accepted. GIF, AVI, WMV, FLV, image sequences and audio-only files are rejected. Nothing is billed.
+`POST /remove` detects the media type from the file content. MP4, MOV, WebM, M4V and MKV containers are accepted as video. AVI, WMV, FLV, image sequences and audio-only files are rejected. Animated GIF and animated WebP are treated as images (first frame), not as video. Nothing is billed.
 
 **To fix:**
 - Convert the file to MP4 (H.264) before uploading
@@ -50,19 +50,19 @@ The file may have been cut off during download or upload, or is not a video at a
 
 ```bash
 # ❌ Wrong - sends the literal text "clip.mp4"
--F "video_file=clip.mp4"
+-F "file=clip.mp4"
 
 # ✅ Correct - sends the file contents
--F "video_file=@clip.mp4"
+-F "file=@clip.mp4"
 ```
 
 ### URL Did Not Return a Video
 
-When using `video_url`, the URL must return the raw video file. A page that embeds a video (a YouTube or Vimeo page, a Google Drive preview) is HTML, not a video. Use a direct download link, and make sure it is publicly reachable without cookies or authentication.
+When using `url`, the URL must return the raw video file. A page that embeds a video (a YouTube or Vimeo page, a Google Drive preview) is HTML, not a video. Use a direct download link, and make sure it is publicly reachable without cookies or authentication.
 
 ### Wrong Extension
 
-The content type is detected from the file bytes, not the extension. Renaming a `.gif` to `.mp4` does not make it an MP4.
+The media type is detected from the file bytes, not the extension or the field name. Renaming a `.gif` to `.mp4` does not make it an MP4: it is still processed as an image.
 
 ## Need Help?
 

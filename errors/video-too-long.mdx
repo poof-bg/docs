@@ -18,7 +18,7 @@ description: "Video is longer than 5 minutes"
 
 ### Duration Exceeds 5 Minutes
 
-Poof probes the video before accepting the job and rejects anything longer than 5 minutes (300 seconds). Nothing is billed.
+`POST /remove` probes a video before accepting the job and rejects anything longer than 5 minutes (300 seconds). Nothing is billed.
 
 **To fix:**
 1. **Trim** the clip to the part you need
@@ -38,7 +38,7 @@ ffmpeg -i long.mp4 -c copy -map 0 -segment_time 300 -f segment -reset_timestamps
 
 ### Credits
 
-Each segment is billed separately at 5 credits per second of source video, rounded up per job, so splitting a 7 minute clip into a 5 minute and a 2 minute job costs the same as it would in one job. See [Credits](/api-reference/video/remove-background#credits).
+Each segment is billed separately at 5 credits per second of source video, rounded up per job, so splitting a 7 minute clip into a 5 minute and a 2 minute job costs the same as it would in one job. See [Credits](/api-reference/remove-background#credits).
 
 ## Need Help?
 

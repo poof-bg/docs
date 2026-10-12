@@ -8,7 +8,7 @@ description: "Video exceeds the upload or URL size limit"
 ```json
 {
   "code": "video_too_large",
-  "message": "The uploaded video exceeds the 100 MB limit. Send videos up to 500 MB via video_url.",
+  "message": "The uploaded video exceeds the 100 MB limit. Send videos up to 500 MB via url.",
   "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
   "doc_url": "https://docs.poof.bg/errors/video-too-large"
 }
@@ -18,14 +18,14 @@ description: "Video exceeds the upload or URL size limit"
 
 ### Upload Exceeds 100 MB
 
-`video_file` uploads are limited to 100 MB. Nothing is billed.
+Video uploads via `file` to `POST /remove` are limited to 100 MB. Nothing is billed.
 
 **To fix, do one of the following:**
-1. **Use `video_url` instead** — host the file somewhere public and let Poof fetch it. The limit via URL is 500 MB.
+1. **Use `url` instead** — host the file somewhere public and let Poof fetch it. The limit via URL is 500 MB.
 2. **Re-encode at a lower bitrate** — most camera and screen-recording files are far larger than they need to be.
 3. **Trim** the clip to the part you need. The [5 minute limit](/errors/video-too-long) applies as well.
 
-### File at `video_url` Exceeds 500 MB
+### File at `url` Exceeds 500 MB
 
 Videos fetched from a URL are limited to 500 MB. Re-encode or trim the source.
 
