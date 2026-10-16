@@ -164,11 +164,11 @@ result = client.remove_background(
 | `padding` | Padding around the subject when `crop` is set: `"10%"` or `"0.1"` for both axes, or `"10%,7.5%"` for `horizontal,vertical` (default `10%`) |
 
 <Note>
-`channels="alpha"`, `padding`, aspect-ratio `crop`, the matte metadata fields and the `width` / `height` / `fit` output-size options are on the SDK's main branch and ship in the next release (`poofbg` 0.2.0). The currently published 0.1.0 passes `size` and `channels` through unchanged but does not expose `padding`, the matte fields or the output-size options.
+`channels="alpha"`, `padding`, aspect-ratio `crop`, the matte metadata fields and the `width` / `height` / `fit` output-size options need `poofbg` 0.2.0 or later; video needs 0.3.0 or later.
 </Note>
 
 
-Every successful call costs 1 credit regardless of options. Failed calls are not billed. Video, which the SDK does not support yet, costs 5 credits per second of source video.
+Every successful image call costs 1 credit regardless of options. Failed calls are not billed. Video costs 5 credits per started second of source video (10 above 30 fps), charged when the job is accepted and refunded if it fails. See [Video](#video).
 
 ## Result Object
 
@@ -334,9 +334,70 @@ def process_image(client: Poof, path: str) -> RemoveBackgroundResult:
 
 ## Video
 
-<Note>
-Video background removal is API-only until the next SDK release: the SDK has no video methods yet, and `remove_background()` only sends images. Call [`POST /remove`](/api-reference/remove-background#video) directly with `requests` or `httpx`, sending the clip as `file`, then poll [`GET /jobs/{id}`](/api-reference/jobs) and download the job's `result_url`. The API reference has a complete Python example with a polling loop.
-</Note>
+`remove_background()` accepts video too (`poofbg` 0.3.0 or later). Poof detects the media type from the bytes: an image returns a `RemoveBackgroundResult` as above, a video is accepted as an asynchronous job and the call returns a `Job` instead. Wait for the job, then download its `result_url`.
+
+```python
+from poof import Poof, Job
+
+client = Poof(api_key="pk_your_api_key")
+
+job = client.remove_background("clip.mp4", format="webm", channels="rgba")
+assert isinstance(job, Job)
+print(job.id, job.status, job.credits)   # job_8f3a1c2e9b7d4a10 queued 65
+
+job = client.wait_for_job(job, on_progress=lambda j: print(f"{j.progress:.0%}"))
+client.download(job, "clip-no-bg.webm")  # fetches job.result_url
+```
+
+Pass `wait=True` to block inside the call instead:
+
+```python
+job = client.remove_background("clip.mp4", format="mov", wait=True)
+client.download(job, "clip-no-bg.mov")
+```
+
+Large files (up to 500 MB) can be fetched by Poof from a public `https` URL instead of uploading them:
+
+```python
+job = client.remove_background(url="https://example.com/clip.mp4", format="mp4", bg_color="#00ff00")
+```
+
+A job that has already been submitted can be looked up by id at any time:
+
+```python
+job = client.get_job("job_8f3a1c2e9b7d4a10")
+if job.is_done:
+    print(job.status, job.result_url)
+```
+
+### Video options
+
+| Option | Values |
+|---|---|
+| `format` | `"webm"` (default, VP9 with alpha), `"mov"` (ProRes 4444), `"mp4"` (H.264, composited on `bg_color`) |
+| `channels` | `"rgba"` (default), `"rgb"`, `"alpha"` (grayscale matte, no audio) |
+| `bg_color` | Background when the output has no alpha (`rgb`, `mp4`); default white |
+| `size` | `"full"` (default, capped at 1080p), `"preview"`, `"medium"`, `"hd"` |
+| `wait` | `True` to poll until the job finishes before returning |
+
+`crop`, `padding`, `width`, `height` and `fit` are image-only; sending one with a video raises `ValidationError`.
+
+### `Job` fields
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | `str` | Job id (`job_…`) |
+| `status` | `str` | `"queued"`, `"processing"`, `"completed"` or `"failed"` |
+| `progress` | `float` | 0 to 1 |
+| `duration_seconds`, `fps`, `width`, `height`, `frames` | numbers | Source clip properties |
+| `credits` | `int` | Credits charged (refunded if the job fails) |
+| `format`, `channels` | `str` | Requested output |
+| `result_url` | `str \| None` | Direct CDN link to the result once completed; valid for 24 hours |
+| `expires_at` | `str \| None` | When `result_url` stops working |
+| `error` | `dict \| None` | `{"code", "message"}` when the job failed |
+| `is_done` | `bool` | `True` for `completed` and `failed` |
+
+`wait_for_job(job, *, poll_interval=3.0, timeout=600.0, on_progress=None)` polls `GET /jobs/{id}` (free, not rate limited) and raises `PoofError` with `code="job_failed"` if the job fails, or `TimeoutError` after `timeout` seconds. The full job lifecycle is described in the [Jobs reference](/api-reference/jobs).
 
 ## Links
 

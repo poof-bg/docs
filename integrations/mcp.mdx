@@ -6,7 +6,7 @@ description: "Give Claude, Cursor and other MCP clients a background removal too
 
 ## Overview
 
-The Poof MCP (Model Context Protocol) server enables powerful background removal capabilities directly within AI development environments like Cursor, Claude Desktop, and VS Code. This integration allows AI models to remove backgrounds from images during your conversation.
+The Poof MCP (Model Context Protocol) server enables powerful background removal capabilities directly within AI development environments like Cursor, Claude Desktop, and VS Code. This integration allows AI models to remove backgrounds from images and videos during your conversation.
 
 [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) is an open standard developed by Anthropic that enables AI assistants to securely connect with external tools and data sources — a standardized way for AI assistants to discover and use capabilities from external services.
 
@@ -15,7 +15,7 @@ The Poof MCP (Model Context Protocol) server enables powerful background removal
 - **Multi-Platform Support** — Works with Claude, Claude Code, ChatGPT, Cursor, Windsurf, VS Code, and more
 - **Remote or Local** — Connect via the hosted server at `https://api.poof.bg/mcp` (OAuth) or run locally over stdio
 - **AI-First Design** — Natural language interface for background removal
-- **Multiple Tools** — Remove backgrounds and check account balance
+- **Images and Video** — Remove backgrounds from images, submit video jobs and check account balance
 
 ## Installation
 
@@ -140,6 +140,49 @@ Remove the background from an image. Accepts a URL or base64-encoded image data 
 | `height` | integer | No | Output height in pixels (1–6000). Alone, the width follows the aspect ratio |
 | `fit` | string | No | How to fit into `width` × `height` without stretching: `contain` (default, pad), `cover` (fill, crop the overflow around the subject), `scale-down` (pad, never enlarge) |
 
+### `remove_video_background`
+
+Remove the background from a video (`@poof-bg/mcp` 1.3.0 or later). The video is fetched by Poof from a public URL and processed as an asynchronous job; the tool returns the job, including a direct `result_url` to the finished video once it is completed. Costs 5 credits per started second of video.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `video_url` | string | **Yes** | Public `https` URL of the video (MP4, MOV, WebM, M4V or MKV, up to 500 MB, up to 5 minutes) |
+| `format` | string | No | Output container: `webm` (default, transparent VP9), `mov` (ProRes 4444), `mp4` (H.264 composited on `bg_color`) |
+| `channels` | string | No | `rgba` (default), `rgb` (opaque on `bg_color`) or `alpha` (grayscale matte, no audio) |
+| `bg_color` | string | No | Background colour when the output has no alpha (`rgb` or `mp4`); default white |
+| `size` | string | No | Output size preset: `full` (default, capped at 1080p), `preview`, `medium`, `hd` |
+| `wait` | boolean | No | Wait for the job to finish before returning (default: `true`, up to about 50 seconds). Longer jobs return while still processing; call `get_job` to finish |
+
+**Returns:** the job object from [`GET /jobs/{id}`](/api-reference/jobs), for example:
+
+```json
+{
+  "id": "job_8f3a1c2e9b7d4a10",
+  "status": "completed",
+  "progress": 1,
+  "duration_seconds": 12.4,
+  "credits": 65,
+  "format": "webm",
+  "channels": "rgba",
+  "result_url": "https://cdn.poof.bg/1d/jobs/job_8f3a1c2e9b7d4a10/result.webm",
+  "expires_at": "2026-10-17T10:12:00Z"
+}
+```
+
+### `get_job`
+
+Check a video job and fetch its result link.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `job_id` | string | **Yes** | The job id returned by `remove_video_background` (`job_…`) |
+
+**Returns:** the same job object; `result_url` is set once `status` is `completed` and stays valid for 24 hours. Polling is free.
+
 ### `get_account`
 
 Check your account balance, plan details, and credit usage.
@@ -182,6 +225,26 @@ Check your account balance, plan details, and credit usage.
 > [Uses remove_background with channels="rgb", bg_color="#ffffff", format="jpg"]
 >
 > Done! I've created a version with a clean white background, perfect for e-commerce display.
+
+### Remove the Background from a Video
+
+> **You:** Remove the background from https://example.com/clip.mp4 and give me a transparent WebM
+
+> **Claude:** I'll submit the clip to Poof and wait for it to finish.
+>
+> [Uses remove_video_background with video_url and format="webm"]
+>
+> Done! Your transparent WebM is ready at https://cdn.poof.bg/1d/jobs/job_8f3a1c2e9b7d4a10/result.webm (the link works for 24 hours). It used 65 credits for the 12.4 second clip.
+
+### Check on a Long Video
+
+> **You:** Is my video job job_8f3a1c2e9b7d4a10 done yet?
+
+> **Claude:** Let me check.
+>
+> [Uses get_job tool]
+>
+> It's 60% through processing. I'll check again in a moment.
 
 ### Check Account Status
 

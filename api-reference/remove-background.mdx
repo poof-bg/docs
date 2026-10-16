@@ -20,7 +20,7 @@ Send `multipart/form-data` with exactly one input: `file` or `url`. The other pa
 <ParamField body="file" type="file">
   The image or video to process. Images: JPEG, PNG or WebP, up to 20 MB. Videos: MP4, MOV, WebM, M4V or MKV, up to 100 MB (use `url` for larger files). Required unless `url` is given.
 
-  The legacy names `image_file` (a file part) and `image_file_b64` (a base64 string, with or without a `data:image/...;base64,` prefix, images only) are still accepted and behave exactly like `file`. When several inputs are sent, `file` / `image_file` wins, then `image_file_b64`, then `url`. The image examples on this page still use `image_file`; it is equivalent.
+  The legacy names `image_file` (a file part) and `image_file_b64` (a base64 string, with or without a `data:image/...;base64,` prefix, images only) are still accepted and behave exactly like `file`. When several inputs are sent, `file` / `image_file` wins, then `image_file_b64`, then `url`.
 </ParamField>
 
 <ParamField body="url" type="string">
@@ -181,7 +181,7 @@ Remove background and save as PNG with transparency:
 ```bash cURL
 curl -X POST https://api.poof.bg/v1/remove \
   -H "x-api-key: YOUR_API_KEY" \
-  -F "image_file=@photo.jpg" \
+  -F "file=@photo.jpg" \
   -o result.png
 ```
 
@@ -214,7 +214,7 @@ Get a JPEG with a white background (great for e-commerce):
 ```bash cURL
 curl -X POST https://api.poof.bg/v1/remove \
   -H "x-api-key: YOUR_API_KEY" \
-  -F "image_file=@product.jpg" \
+  -F "file=@product.jpg" \
   -F "format=jpg" \
   -F "channels=rgb" \
   -F "bg_color=#ffffff" \
@@ -250,7 +250,7 @@ Get just the grayscale alpha mask (white = foreground, black = background) — u
 ```bash cURL
 curl -X POST https://api.poof.bg/v1/remove \
   -H "x-api-key: YOUR_API_KEY" \
-  -F "image_file=@photo.jpg" \
+  -F "file=@photo.jpg" \
   -F "channels=alpha" \
   -o mask.png
 ```
@@ -276,7 +276,7 @@ Get a small, cropped preview:
 ```bash cURL
 curl -X POST https://api.poof.bg/v1/remove \
   -H "x-api-key: YOUR_API_KEY" \
-  -F "image_file=@photo.jpg" \
+  -F "file=@photo.jpg" \
   -F "size=preview" \
   -F "crop=true" \
   -o thumbnail.png
@@ -309,7 +309,7 @@ Crop to the subject, then add 10% horizontal and 7.5% vertical padding (a 120% �
 ```bash cURL
 curl -X POST https://api.poof.bg/v1/remove \
   -H "x-api-key: YOUR_API_KEY" \
-  -F "image_file=@product.jpg" \
+  -F "file=@product.jpg" \
   -F "crop=true" \
   -F "padding=10%,7.5%" \
   -o product-cropped.png
@@ -342,7 +342,7 @@ Resize every result to exactly 500 × 500 — ideal for marketplace listings and
 ```bash cURL
 curl -X POST https://api.poof.bg/v1/remove \
   -H "x-api-key: YOUR_API_KEY" \
-  -F "image_file=@product.jpg" \
+  -F "file=@product.jpg" \
   -F "crop=true" \
   -F "width=500" \
   -F "height=500" \
@@ -367,7 +367,7 @@ Use `fit=cover` to fill the canvas edge to edge instead (the overflow is cropped
 ```bash cURL
 curl -X POST https://api.poof.bg/v1/remove \
   -H "x-api-key: YOUR_API_KEY" \
-  -F "image_file=@photo.jpg" \
+  -F "file=@photo.jpg" \
   -F "width=1080" \
   -F "height=1080" \
   -F "fit=cover" \
@@ -406,7 +406,7 @@ Set only `width` (or only `height`) to scale to that dimension and let the other
 ```bash cURL
 curl -X POST https://api.poof.bg/v1/remove \
   -H "x-api-key: YOUR_API_KEY" \
-  -F "image_file=@icon.png" \
+  -F "file=@icon.png" \
   -F "width=1000" \
   -F "height=1000" \
   -F "fit=scale-down" \
@@ -432,7 +432,7 @@ Optimal format for web delivery:
 ```bash cURL
 curl -X POST https://api.poof.bg/v1/remove \
   -H "x-api-key: YOUR_API_KEY" \
-  -F "image_file=@photo.jpg" \
+  -F "file=@photo.jpg" \
   -F "format=webp" \
   -o result.webp
 ```
@@ -455,7 +455,7 @@ Send a video clip to the same endpoint and it is accepted with `202 Accepted` an
 The flow is: submit → poll [`GET /jobs/{id}`](/api-reference/jobs) every 2 to 5 seconds until `status` is `completed` (or `failed`) → download `result_url`. `result_url` is a direct CDN link that needs no API key and stays valid for 24 hours (`expires_at`).
 
 <Note>
-The [Python](/integrations/python) and [TypeScript](/integrations/typescript) SDKs do not support video yet. Until the next SDK release, call the API directly as shown in the [examples](#video-examples) below.
+The [Python](/integrations/python#video) (`poofbg` 0.3.0+) and [TypeScript](/integrations/typescript#video) (`@poof-bg/js` 1.2.0+) SDKs return a job from the same `remove_background()` / `removeBackground()` call and ship `wait_for_job` / `waitForJob` helpers; the [MCP server](/integrations/mcp) exposes `remove_video_background`. The [examples](#video-examples) below use the raw API.
 </Note>
 
 ### Limits

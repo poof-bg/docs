@@ -45,7 +45,7 @@ curl -X POST https://api.remove.bg/v1.0/removebg \
 # Poof (after)
 curl -X POST https://api.poof.bg/v1/remove \
   -H 'X-Api-Key: YOUR_POOF_KEY' \
-  -F 'image_file=@image.jpg' \
+  -F 'file=@image.jpg' \
   -o no-bg.png
 ```
 
@@ -62,7 +62,7 @@ response = requests.post(
 # Poof (after)
 response = requests.post(
     'https://api.poof.bg/v1/remove',
-    files={'image_file': open('image.jpg', 'rb')},
+    files={'file': open('image.jpg', 'rb')},
     headers={'X-Api-Key': 'YOUR_POOF_KEY'},
 )
 response.raise_for_status()
@@ -73,7 +73,8 @@ open('no-bg.png', 'wb').write(response.content)
 import fs from 'node:fs/promises';
 
 const form = new FormData();
-form.append('image_file', new Blob([await fs.readFile('image.jpg')]), 'image.jpg');
+// Poof's field is `file`; remove.bg's `image_file` is still accepted as an alias
+form.append('file', new Blob([await fs.readFile('image.jpg')]), 'image.jpg');
 
 // remove.bg (before): https://api.remove.bg/v1.0/removebg with YOUR_REMOVEBG_KEY
 // Poof (after):
@@ -94,7 +95,7 @@ Poof's validator ignores fields it does not know, so leftover remove.bg paramete
 
 | remove.bg parameter | Poof | Status | Notes |
 |---|---|---|---|
-| `image_file` | `image_file` | Same | PNG, JPG or WebP, up to 20 MB |
+| `image_file` | `file` | Alias | PNG, JPG or WebP, up to 20 MB. `image_file` is still accepted as an alias of `file` |
 | `format` = `png` \| `jpg` \| `webp` | `format` | Same | `auto` and `zip` are not supported: request `png`, `jpg` or `webp` explicitly |
 | `bg_color` | `bg_color` | Same | Hex, `rgb()` or a CSS colour name |
 | `channels` = `rgba` \| `alpha` | `channels` | Same | Poof also accepts `rgb` for an opaque image on `bg_color` |
@@ -103,8 +104,8 @@ Poof's validator ignores fields it does not know, so leftover remove.bg paramete
 | `size` = `auto` \| `4k` \| `50MP` | `size=full` | Mapped | Compatibility layer. Poof's default is already `full` |
 | `size` = `small` \| `regular` | `size=preview` | Mapped | Compatibility layer |
 | `crop_margin` | `padding` | Mapped | Compatibility layer, percentages only: `10%` maps directly, `5% 10%` becomes `10%,5%`. Pixel margins such as `10px` cannot be honoured and are ignored (Poof's default `padding` of `10%` applies). `padding`, when sent, always wins |
-| `image_url` | `image_url` | Mapped | Compatibility layer: Poof downloads the image server-side. Otherwise download it yourself and send `image_file` |
-| `image_file_b64` | `image_file_b64` | Mapped | Compatibility layer. Otherwise decode and send `image_file` |
+| `image_url` | `url` | Alias | Poof downloads the image server-side (public `https` URLs, up to 20 MB). `image_url` is still accepted as an alias of `url` |
+| `image_file_b64` | `file` (base64 accepted) | Mapped | Compatibility layer: a base64 string in `image_file_b64` is decoded server-side. In new code decode it yourself and send the bytes as `file` |
 | `scale`, `position` | `width`, `height`, `fit` | Partial | No one-to-one mapping. Use [`width`/`height`](/api-reference/remove-background) (1 to 6000 px) with `fit=contain`, `cover` or `scale-down` |
 | `type`, `type_level` | — | Ignored | Poof does not take a subject hint. People, products, cars, animals and graphics are handled without one |
 | `semitransparency` | — | Ignored | Poof always returns a full alpha matte |
@@ -113,7 +114,7 @@ Poof's validator ignores fields it does not know, so leftover remove.bg paramete
 | `bg_image_url`, `bg_image_file` | — | Not supported | Request a transparent PNG or WebP and composite the background yourself |
 
 <Note>
-**remove.bg compatibility layer.** Rows marked *Mapped* are accepted by a compatibility layer on `/v1/remove`, which also answers on the legacy path `/v1.0/removebg`. It exists so an existing remove.bg client can switch by changing the hostname and key. In new code prefer Poof's native parameters: one of the four `size` values, `padding` instead of `crop_margin`, and `image_file` uploads.
+**remove.bg compatibility layer.** Rows marked *Mapped* are accepted by a compatibility layer on `/v1/remove`, which also answers on the legacy path `/v1.0/removebg`. It exists so an existing remove.bg client can switch by changing the hostname and key. In new code prefer Poof's native parameters: one of the four `size` values, `padding` instead of `crop_margin`, and `file` / `url` inputs.
 </Note>
 
 ## 3. Response headers
