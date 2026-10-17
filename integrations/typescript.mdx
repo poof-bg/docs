@@ -165,11 +165,11 @@ const result = await poof.removeBackground(image, {
 | `padding` | Padding around the subject when `crop` is set: `'10%'` or `'0.1'` for both axes, or `'10%,7.5%'` for `horizontal,vertical` (default `10%`) |
 
 <Note>
-`channels: 'alpha'`, `padding`, aspect-ratio `crop`, the matte metadata fields and the `width` / `height` / `fit` output-size options are on the SDK's main branch and ship in the next release (`@poof-bg/js` 1.1.0). The currently published 1.0.0 passes `size` and `channels` through unchanged but does not expose `padding`, the matte fields or the output-size options.
+`channels: 'alpha'`, `padding`, aspect-ratio `crop`, the matte metadata fields and the `width` / `height` / `fit` output-size options need `@poof-bg/js` 1.1.0 or later; video needs 1.2.0 or later.
 </Note>
 
 
-Every successful call costs 1 credit regardless of options. Failed calls are not billed.
+Every successful image call costs 1 credit regardless of options. Failed calls are not billed. Video costs 5 credits per started second of source video (10 above 30 fps), charged when the job is accepted and refunded if it fails. See [Video](#video).
 
 ## Result and Metadata
 
@@ -414,6 +414,73 @@ export async function POST(request: NextRequest) {
   });
 }
 ```
+
+## Video
+
+`removeBackground()` accepts video too (`@poof-bg/js` 1.2.0 or later). Poof detects the media type from the bytes: an image resolves to a `RemoveBackgroundResult` as above, a video is accepted as an asynchronous job and the call resolves to a `Job` instead. Use the `isJob()` type guard to tell them apart, wait for the job, then download its `resultUrl`.
+
+```typescript
+import { Poof, isJob } from '@poof-bg/js';
+import fs from 'fs/promises';
+
+const poof = new Poof({ apiKey: 'pk_your_api_key' });
+
+const result = await poof.removeBackground('clip.mp4', { format: 'webm', channels: 'rgba' });
+if (!isJob(result)) throw new Error('expected a video job');
+console.log(result.id, result.status, result.credits); // job_8f3a1c2e9b7d4a10 queued 65
+
+const job = await poof.waitForJob(result, {
+  onProgress: (j) => console.log(`${Math.round(j.progress * 100)}%`),
+});
+
+const video = await fetch(job.resultUrl!);
+await fs.writeFile('clip-no-bg.webm', Buffer.from(await video.arrayBuffer()));
+```
+
+Pass `wait: true` to resolve with the finished job in one call:
+
+```typescript
+const job = await poof.removeBackground('clip.mp4', { format: 'mov', wait: true });
+```
+
+Large files (up to 500 MB) can be fetched by Poof from a public `https` URL instead of uploading them, and a job can be looked up by id at any time:
+
+```typescript
+const job = await poof.removeBackground({ url: 'https://example.com/clip.mp4' }, { format: 'mp4', bgColor: '#00ff00' });
+
+const later = await poof.getJob('job_8f3a1c2e9b7d4a10');
+if (later.status === 'completed') console.log(later.resultUrl);
+```
+
+In the browser, pass the `File` from an `<input type="file">` exactly as for images; the result URL can be set straight on a `<video>` element.
+
+### Video options
+
+| Option | Values |
+|---|---|
+| `format` | `'webm'` (default, VP9 with alpha), `'mov'` (ProRes 4444), `'mp4'` (H.264, composited on `bgColor`) |
+| `channels` | `'rgba'` (default), `'rgb'`, `'alpha'` (grayscale matte, no audio) |
+| `bgColor` | Background when the output has no alpha (`rgb`, `mp4`); default white |
+| `size` | `'full'` (default, capped at 1080p), `'preview'`, `'medium'`, `'hd'` |
+| `wait` | `true` to poll until the job finishes before resolving |
+
+`crop`, `padding`, `width`, `height` and `fit` are image-only; sending one with a video rejects with a `PoofError` of code `validation_error`.
+
+### `Job` fields
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | `string` | Job id (`job_…`) |
+| `status` | `'queued' \| 'processing' \| 'completed' \| 'failed'` | Current state |
+| `progress` | `number` | 0 to 1 |
+| `durationSeconds`, `fps`, `width`, `height`, `frames` | `number` | Source clip properties |
+| `credits` | `number` | Credits charged (refunded if the job fails) |
+| `format`, `channels` | `string` | Requested output |
+| `resultUrl` | `string \| null` | Direct CDN link to the result once completed; valid for 24 hours |
+| `expiresAt` | `string \| null` | When `resultUrl` stops working |
+| `error` | `{ code, message } \| null` | Set when the job failed |
+
+`waitForJob(jobOrId, { pollIntervalMs = 3000, timeoutMs = 600000, onProgress })` polls `GET /jobs/{id}` (free, not rate limited) and rejects with a `PoofError` of code `job_failed` if the job fails, or `timeout` after `timeoutMs`. The full job lifecycle is described in the [Jobs reference](/api-reference/jobs).
 
 ## Links
 

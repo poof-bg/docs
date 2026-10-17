@@ -28,11 +28,25 @@ For validation errors, `details` is an object mapping each invalid field name to
 A parameter has an invalid value that doesn't match the expected options.
 
 **Common issues:**
-- `format` must be one of: `png`, `jpg`, `webp`
+- `format` must be one of: `png`, `jpg`, `webp` for an image, or `webm`, `mov`, `mp4` for a video. Sending a format from the wrong family (for example `format=png` with a video) returns this error with the valid values for that media
 - `channels` must be one of: `rgba`, `rgb`, `alpha`
 - `size` must be one of: `full`, `preview`, `medium`, `hd`
 - `crop` must be a boolean (`true`/`false`) or an aspect ratio like `1:1`, `4:3`, `16:9`
 - `padding` must be a number (`0.1`) or percentage (`10%`), optionally as `horizontal,vertical` (`10%,7.5%`)
+
+### Image-only Parameter Sent with a Video
+
+`crop`, `padding`, `crop_margin`, `width`, `height` and `fit` only apply to images. Sending any of them with a video is rejected, and `details.field` names the offending parameter. Use `size` to downscale a video.
+
+```json
+{
+  "code": "validation_error",
+  "message": "'crop' is not supported for video.",
+  "details": { "field": "crop" },
+  "request_id": "req_3f6a2c1e-9b0d-4e7a-8c21-5d1f0a9b7e42",
+  "doc_url": "https://docs.poof.bg/errors/validation-error"
+}
+```
 
 ### Incorrect Data Types
 
@@ -60,20 +74,23 @@ curl -X POST https://api.poof.bg/v1/remove \
 # ✅ Correct
 curl -X POST https://api.poof.bg/v1/remove \
   -H "x-api-key: pk_your_api_key" \
-  -F "image_file=@photo.jpg"
+  -F "file=@photo.jpg"
 ```
 
 ## Valid Parameter Reference
 
 | Parameter | Type | Valid Values |
 |-----------|------|--------------|
-| `image_file` | file | Required. JPEG, PNG or WebP, max 20 MB |
-| `format` | string | `png`, `jpg`, `webp` |
+| `file` | file | Image (JPEG, PNG or WebP, max 20 MB) or video (MP4, MOV, WebM, M4V or MKV, max 100 MB). Required unless `url` is given |
+| `url` | string | Public `https` URL of an image (max 20 MB) or video (max 500 MB). Required unless `file` is given |
+| `format` | string | Image: `png`, `jpg`, `webp`. Video: `webm`, `mov`, `mp4` |
 | `channels` | string | `rgba`, `rgb`, `alpha` |
 | `bg_color` | string | Hex, RGB, or color name |
 | `size` | string | `full`, `preview`, `medium`, `hd` |
-| `crop` | boolean or string | `true`, `false`, or aspect ratio like `1:1` |
-| `padding` | string | Number (`0.1`) or percentage (`10%`), optionally `horizontal,vertical`; only with `crop` |
+| `crop` | boolean or string | `true`, `false`, or aspect ratio like `1:1`. Image only |
+| `padding` | string | Number (`0.1`) or percentage (`10%`), optionally `horizontal,vertical`; only with `crop`. Image only |
+| `width`, `height` | integer | `1`–`6000`. Image only |
+| `fit` | string | `contain`, `cover`, `scale-down`. Image only |
 
 ## Need Help?
 

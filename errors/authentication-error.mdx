@@ -22,12 +22,12 @@ The most common cause is forgetting to include the `x-api-key` header in your re
 
 ```bash
 # ❌ Wrong - missing header
-curl -X POST https://api.poof.bg/v1/remove -F "image_file=@photo.jpg"
+curl -X POST https://api.poof.bg/v1/remove -F "file=@photo.jpg"
 
 # ✅ Correct
 curl -X POST https://api.poof.bg/v1/remove \
   -H "x-api-key: pk_your_api_key" \
-  -F "image_file=@photo.jpg"
+  -F "file=@photo.jpg"
 ```
 
 ### Invalid API Key

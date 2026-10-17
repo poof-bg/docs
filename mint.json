@@ -64,6 +64,7 @@
       "group": "API Reference",
       "pages": [
         "api-reference/remove-background",
+        "api-reference/jobs",
         "api-reference/account",
         {
           "group": "Errors",
@@ -80,7 +81,11 @@
             "errors/invalid-image",
             "errors/processing-failed",
             "errors/upstream-error",
-            "errors/internal-server-error"
+            "errors/internal-server-error",
+            "errors/video-too-large",
+            "errors/video-too-long",
+            "errors/invalid-video",
+            "errors/job-not-found"
           ]
         }
       ]

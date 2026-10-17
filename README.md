@@ -6,7 +6,7 @@ Source for [docs.poof.bg](https://docs.poof.bg), the developer documentation for
 
 - `mint.json` — site configuration and navigation
 - `introduction.mdx`, `quickstart.mdx` — getting started
-- `api-reference/` — endpoint pages (`POST /remove`, `GET /me`)
+- `api-reference/` — endpoint pages (`POST /remove`, `GET /jobs/{id}`, `GET /me`)
 - `errors/` — one page per error code plus the `errors/list` reference
 - `integrations/` — Python and TypeScript SDKs, n8n, Zapier, Make, MCP
 - `openapi.json` — OpenAPI 3.1 spec that powers the API reference pages

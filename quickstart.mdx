@@ -26,7 +26,7 @@ Choose your preferred method:
     ```bash
     curl -X POST https://api.poof.bg/v1/remove \
       -H "x-api-key: pk_your_api_key" \
-      -F "image_file=@input.jpg" \
+      -F "file=@input.jpg" \
       -o output.png
     ```
   </Tab>
@@ -98,6 +98,12 @@ Your output file now contains the image with the background removed:
   <Card title="Explore Integrations" icon="puzzle-piece" href="/integrations/overview">
     Use our official SDKs and integrations
   </Card>
+  <Card title="Remove Video Backgrounds" icon="video" href="/api-reference/remove-background#video">
+    Transparent WebM, ProRes or MP4 on a solid colour from clips up to 5 minutes. Works best on a clearly separated subject
+  </Card>
+  <Card title="Poll a Job" icon="rotate" href="/api-reference/jobs">
+    Check a video job's progress and download its result
+  </Card>
 </CardGroup>
 
 ## Common Options
@@ -108,7 +114,7 @@ Here are some popular parameter combinations:
 # Get a JPEG with white background
 curl -X POST https://api.poof.bg/v1/remove \
   -H "x-api-key: YOUR_API_KEY" \
-  -F "image_file=@photo.jpg" \
+  -F "file=@photo.jpg" \
   -F "format=jpg" \
   -F "channels=rgb" \
   -F "bg_color=#ffffff" \
@@ -117,21 +123,71 @@ curl -X POST https://api.poof.bg/v1/remove \
 # Get a small preview (faster; every successful request costs 1 credit regardless of size)
 curl -X POST https://api.poof.bg/v1/remove \
   -H "x-api-key: YOUR_API_KEY" \
-  -F "image_file=@photo.jpg" \
+  -F "file=@photo.jpg" \
   -F "size=preview" \
   -o preview.png
 
 # Crop to subject bounds
 curl -X POST https://api.poof.bg/v1/remove \
   -H "x-api-key: YOUR_API_KEY" \
-  -F "image_file=@photo.jpg" \
+  -F "file=@photo.jpg" \
   -F "crop=true" \
   -o cropped.png
 
 # Get just the grayscale alpha mask
 curl -X POST https://api.poof.bg/v1/remove \
   -H "x-api-key: YOUR_API_KEY" \
-  -F "image_file=@photo.jpg" \
+  -F "file=@photo.jpg" \
   -F "channels=alpha" \
   -o mask.png
 ```
+
+## Video
+
+The same endpoint removes backgrounds from video; Poof detects the media type from the file content. A video is accepted with `202` and a job: wait for the job, then download its `result_url`. Video costs 5 credits per second of source video.
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # Submit a clip; the response is a job with an "id" and a "status_url"
+    curl -X POST https://api.poof.bg/v1/remove \
+      -H "x-api-key: YOUR_API_KEY" \
+      -F "file=@clip.mp4" \
+      -F "format=webm"
+
+    # Poll until "status" is "completed", then download "result_url"
+    curl https://api.poof.bg/v1/jobs/job_8f3a1c2e9b7d4a10 \
+      -H "x-api-key: YOUR_API_KEY"
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    from poof import Poof
+
+    client = Poof(api_key="pk_your_api_key")
+
+    job = client.remove_background("clip.mp4", format="webm")   # returns a Job
+    job = client.wait_for_job(job)
+    client.download(job, "clip-no-bg.webm")
+    ```
+    Needs `poofbg` 0.3.0 or later.
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { Poof, isJob } from '@poof-bg/js';
+    import fs from 'fs/promises';
+
+    const poof = new Poof({ apiKey: 'pk_your_api_key' });
+
+    const submitted = await poof.removeBackground('clip.mp4', { format: 'webm' });
+    if (isJob(submitted)) {
+      const job = await poof.waitForJob(submitted);
+      const video = await fetch(job.resultUrl!);
+      await fs.writeFile('clip-no-bg.webm', Buffer.from(await video.arrayBuffer()));
+    }
+    ```
+    Needs `@poof-bg/js` 1.2.0 or later.
+  </Tab>
+</Tabs>
+
+See [Video](/api-reference/remove-background#video) for the full flow and the [Python](/integrations/python#video) and [TypeScript](/integrations/typescript#video) SDK pages for the job helpers.
